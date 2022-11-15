@@ -29,7 +29,7 @@ public interface List61B<Item> {
     /**
      * Prints out the entire list.
      */
-    default public void print() {
+    default void print() {
         for (int i = 0, n = size(); i < n; i++) {
             System.out.print(get(i) + " ");
         }

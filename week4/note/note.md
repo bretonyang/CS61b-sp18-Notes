@@ -923,3 +923,582 @@ Invocation of overridden methods follows two simple rules:
 - Can use casting to overrule compiler type checking.
 
 ![cheatsheet](./note-img/4-2/cheatsheet.PNG)
+
+---
+
+## 4-3 Subtype Polymorphism vs. HoFs
+
+### Dynamic Method Selection Puzzle
+
+![puzzle-1](./note-img/4-3/puzzle-1.PNG)
+![puzzle-2](./note-img/4-3/puzzle-2.PNG)
+
+My ans: 2223
+
+Let's walk through the follwing lines:
+
+```java
+Dog dx = ((Dog) o2);
+dx.bark();
+```
+
+The static type of `o2` is Object, so we use `(Dog)` to cast the static type of the RHS expression into Dog, such that when the compiler checks whether the static type of RHS "is-a" Dog, we can successfully compile.
+
+So when we call `dx.bark()`, since `dx` has static type Dog, so compiler checks whether there's a `bark` method in Dog and if so, register its signature. And at run-time, since `dx` points to `o2` and `o2` has dynamic type `ShowDog`, and also, the method `bark` is overriden in the `ShowDog` class, so the `bark` method in `ShowDog` is called.
+
+```java
+((Dog) o2).bark();
+```
+
+Again the static type of `o2` is Object, and the static type of `(Dog) o2` is Dog, and there's a method called `bark` in Dog, so compiles fine. At run-time, since the dynamic type of `o2` is ShowDog, so JVM calls the override method `bark` in ShowDog.
+
+```java
+Object o3 = (Dog) o2;
+o3.bark();
+```
+
+Since Object does NOT have `bark` method, this creates a syntax error.
+
+Some more situations:
+
+![hiding](./note-img/4-3/hiding.PNG)
+
+Document about hiding (do note that it's super BAD style): [hiding Doc](https://docs.oracle.com/javase/tutorial/java/IandI/override.html)
+
+### Intro
+
+We've seen how inheritance lets us reuse existing code in a superclass while implementing small modifications by overriding a superclass's methods or writing brand new methods in the subclass. Inheritance also makes it possible to design general data structures and methods using polymorphism.
+
+**Polymorphism**, at its core, means 'many forms'. In Java, polymorphism refers to **how objects can have many forms or types**. In object-oriented programming (OOP), polymorphism relates to **how an object can be regarded as an instance of its own class, an instance of its superclass, an instance of its superclass's superclass, and so on**.
+
+Consider a variable `deque` of static type Deque. A call to `deque.addFirst()` will be determined at the time of execution, depending on the run-time type, or dynamic type, of `deque` when `addFirst` is called. As we saw in the last chapter, Java picks which method to call using dynamic method selection.
+
+Suppose we want to write a python program that prints a string representation of the larger of two objects. There are two approaches to this.
+
+1. Explicit HoF Approach
+
+```py
+def print_larger(x, y, compare, stringify):
+    if compare(x, y):
+        return stringify(x)
+    return stringify(y)
+```
+
+2. Subtype Polymorphism Approach
+
+```py
+def print_larger(x, y):
+    if x.largerThan(y):
+        return x.str()
+    return y.str()
+```
+
+Using the explicit HoF approach, you have a common way to print out the larger of two objects.
+
+In contrast, in the subtype polymorphism approach, the object _itself_ makes the choices. The `largerThan` that is called is dependent on what x and y actually are.
+
+### Max Function
+
+Say we want to write a `max` function which takes in any array - regardless of type - and returns the maximum item in the array.
+
+**Exercise 4.3.1.** Your task is to determine how many compilation errors there are in the code below.
+
+> Note: When we pass an argument to a function, the compiler also does type checking, it checks whether the static type of the argument "is-a" parameter's type.
+
+```java
+public static Object max(Object[] items) {
+    int maxDex = 0;
+    for (int i = 0; i < items.length; i += 1) {
+        if (items[i] > items[maxDex]) {
+            maxDex = i;
+        }
+    }
+    return items[maxDex];
+}
+
+public static void main(String[] args) {
+    Dog[] dogs = {new Dog("Elyse", 3), new Dog("Sture", 9), new Dog("Benjamin", 15)};
+    Dog maxDog = (Dog) max(dogs);
+    maxDog.bark();
+}
+```
+
+There's 1 error:
+
+```java
+if (items[i] > items[maxDex]) { /*...*/}
+```
+
+This is because the `>` operator does NOT work with Object types.
+
+Instead, one thing we could is define a maxDog function in the Dog class, and give up on writing a "one true max function" that could take in an array of any arbitrary type. We might define something like this:
+
+```java
+public static Dog maxDog(Dog[] dogs) {
+    if (dogs == null || dogs.length == 0) {
+        return null;
+    }
+    Dog maxDog = dogs[0];
+    for (Dog d : dogs) {
+        if (d.size > maxDog.size) {
+            maxDog = d;
+        }
+    }
+    return maxDog;
+}
+```
+
+While this would work for now, if we give up on our dream of making a generalized `max` function and let the Dog class define its own `max` function, then **we'd have to do the same for any class we define later** :(. We'd need to write a `maxCat` function, a `maxPenguin` function, a `maxWhale` function, etc., resulting in unnecessary repeated work and a lot of redundant code.
+
+The fundamental issue that gives rise to this is that Objects cannot be compared with `>`. This makes sense, as how could Java know whether it should use the String representation of the object, or the size, or another metric, to make the comparison? In Python or C++, the way that the `>` operator works could be redefined to work in different ways when applied to different types. Unfortunately, Java does not have this capability. Instead, **we turn to interface inheritance to help us out**.
+
+We can **create an interface that guarantees that any implementing class, like Dog, contains a comparison method**, which we'll call `compareTo`.
+
+![compareTo()](./note-img/4-3/dog_comparable.png)
+
+Let's write our interface. We'll specify one method `compareTo`.
+
+```java
+public interface OurComparable {
+    int compareTo(Object o);
+}
+```
+
+We will define its behavior like so:
+
+- Return -1 if this < o.
+- Return 0 if this equals o.
+- Return 1 if this > o.
+
+Now that we've created the `OurComparable` interface, we can require that our Dog class implements the `compareTo` method. First, we change Dog's class header to include `implements OurComparable`, and then we write the `compareTo` method according to its defined behavior above.
+
+**Exercise 4.3.2.** Implement the compareTo method for the Dog class.
+
+```java
+public class Dog implements OurComparable {
+    private String name;
+    private int size;
+
+    public Dog(String n, int s) {
+        name = n;
+        size = s;
+    }
+
+    public void bark() {
+        System.out.println(name + " says: bark");
+    }
+
+    public int compareTo(Object o) {
+        Dog uddaDog = (Dog) o;
+        if (this.size < uddaDog.size) {
+            return -1;
+        } else if (this.size == uddaDog.size) {
+            return 0;
+        }
+        return 1;
+    }
+}
+```
+
+> Notice that since `compareTo` takes in any arbitrary `Object o`, we have to cast the input to a `Dog` to make our comparison using the `size` instance variable.
+
+Now we can generalize the `max` function we defined in exercise 4.3.1 to, instead of taking in any arbitrary array of objects, takes in `OurComparable` objects - which we know for certain all have the `compareTo` method implemented.
+
+```java
+public static OurComparable max(OurComparable[] items) {
+    int maxDex = 0;
+    for (int i = 0; i < items.length; i += 1) {
+        int cmp = items[i].compareTo(items[maxDex]);
+        if (cmp > 0) {
+            maxDex = i;
+        }
+    }
+    return items[maxDex];
+}
+```
+
+Great! Now our `max` function can take in an array of any `OurComparable` type objects and return the maximum object in the array. Now, this code is admittedly quite long, so we can make it much more succinct by modifying our `compareTo` method's behavior:
+
+- Return negative number if `this` < o.
+- Return 0 if `this` equals o.
+- Return positive number if `this` > o.
+
+Now, we can just return the difference between the sizes. If my size is 2, and uddaDog's size is 5, `compareTo` would return -3, a negative number indicating that I am smaller.
+
+```java
+public int compareTo(Object o) {
+    Dog uddaDog = (Dog) o;
+    return this.size - uddaDog.size;
+}
+```
+
+Using inheritance, we were able to generalize our maximization function. What are the benefits to this approach?
+
+- No need for maximization code in every class(i.e. no `Dog.maxDog(Dog[] dogs)` function required
+- We have code that operates on multiple types (mostly) gracefully
+
+### Interfaces Quiz
+
+**Exercise 4.3.3.** Given the `Dog` class, `DogLauncher` class, `OurComparable` interface, and the `Maximizer` class, if we omit the `compareTo()` method from the `Dog` class, which file will fail to compile?
+
+```java
+public class DogLauncher {
+    public static void main(String[] args) {
+        ...
+        Dog[] dogs = new Dog[]{d1, d2, d3};
+        System.out.println(Maximizer.max(dogs));
+    }
+}
+
+public class Dog implements OurComparable {
+    ...
+    public int compareTo(Object o) {
+        Dog uddaDog = (Dog) o;
+        if (this.size < uddaDog.size) {
+            return -1;
+        } else if (this.size == uddaDog.size) {
+            return 0;
+        }
+        return 1;
+    }
+    ...
+}
+
+public class Maximizer {
+    public static OurComparable max(OurComparable[] items) {
+        ...
+        int cmp = items[i].compareTo(items[maxDex]);
+        ...
+    }
+}
+```
+
+In this case, the Dog class fails to compile. By declaring that it `implements OurComparable`, the Dog class makes a claim that it "is-an" `OurComparable`. As a result, the `compiler checks whether the Dog class actually implements the methods specified in OurComparable class`.
+
+What if we were to omit implements OurComparable from the Dog class header? This would cause a compile error in DogLauncher due to this line:
+
+```java
+Dog d = (Dog) Maximizer.max(dogs);
+```
+
+If Dog does not implement the `OurComparable` interface, then trying to pass in an array of Dogs to Maximizer's `max` function wouldn't be approved by the compiler. `max` only accepts an array of OurComparable objects.
+
+#### Sumary
+
+Note that the `OurComparable` class and `Maximizer` class should ALWAYS compile no matter what other specific class extends or implements them and uses them. This is because `OurComparable` and `Maximizer` works at a **higher level of abstraction**, so when we write these codes, we should NOT even be consider what specific class will use these.
+
+#### Our comparable Code
+
+```java
+public interface OurComparable {
+    /**
+     * Return -1 if this < o; 0 if this = o;
+     * 1 if this > o.
+     * @param o Object to compare to
+     */
+    int compareTo(Object o);
+}
+```
+
+```java
+public class Dog implements OurComparable {
+    public String name;
+    public int size;
+
+    public Dog(String n, int s) {
+        name = n;
+        size = s;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        Dog cmpDog = (Dog) o;
+        return this.size - cmpDog.size;
+    }
+
+    public void bark() {
+        System.out.println(name + " says: bark");
+    }
+}
+```
+
+```java
+public class Maximizer {
+    public static OurComparable max(OurComparable[] items) {
+        int maxIdx = 0;
+        for (int i = 1; i < items.length; i++) {
+            if (items[i].compareTo(items[maxIdx]) > 0) {
+                maxIdx = i;
+            }
+        }
+        return items[maxIdx];
+    }
+}
+```
+
+```java
+public class DogLauncher {
+    public static void main(String[] args) {
+        Dog d1 = new Dog("Elyse", 3);
+        Dog d2 = new Dog("Sture", 9);
+        Dog d3 = new Dog("Benjamin", 15);
+        Dog[] dogs = new Dog[]{d1, d2, d3};
+
+        Dog d = (Dog) Maximizer.max(dogs);
+        System.out.println(d.name);
+    }
+}
+```
+
+### Comparables
+
+The `OurComparable` interface that we just built works, but it's not perfect. Here are some issues with it:
+
+- Awkward casting to/from Objects
+- We made it up:
+  - No existing classes implement OurComparable (e.g. String, etc.)
+  - No existing classes use OurComparable (e.g. no built-in max function that uses OurComparable)
+
+The solution? **We'll take advantage of an interface that already exists called Comparable**. `Comparable` is already defined by Java and is used by countless libraries.
+
+Comparable looks very similar to the OurComparable interface we made, but with one main difference. Can you spot it?
+
+![comparable_interface](./note-img/4-3/comparable_interface.png)
+
+Notice that `Comparable<T>` means that it takes a **generic type**. This will help us avoid having to cast an object to a specific type!
+
+Now, we will rewrite the `Dog` class to implement the `Comparable` interface, being sure to update the generic type `T` to `Dog`:
+
+```java
+public class Dog implements Comparable<Dog> {
+    /*...*/
+
+    public int compareTo(Dog uddaDog) {
+        return this.size - uddaDog.size;
+    }
+}
+```
+
+Now all that's left is to change each instance of `OurComparable` in the `Maximizer` class to `Comparable`:
+
+```java
+public class Maximizer {
+    public static Comparable<Dog> max(Comparable<Dog>[] items) {
+        int maxIdx = 0;
+        for (int i = 1; i < items.length; i++) {
+            if (items[i].compareTo((Dog) items[maxIdx]) > 0) {
+                maxIdx = i;
+            }
+        }
+        return items[maxIdx];
+    }
+}
+```
+
+Instead of using our personally created interface `OurComparable`, we now use the real, built-in interface, `Comparable`. As a result, **we can take advantage of all the libraries that already exist and use Comparable**.
+
+![Comparable](./note-img/4-3/comparable.png)
+
+Here are some advantages of using a built-in interface like `comparable`:
+
+![advantages of comparable](./note-img/4-3/Comparable_Advantages.PNG)
+
+### Comparator
+
+We've just learned about the `comparable` interface, which imbeds into each `Dog` the ability to compare itself to another Dog. Now, we will introduce a new interface that looks very similar called `Comparator`.
+
+Let's start off by defining some terminology.
+
+- **Natural order** - used to refer to the ordering implied in the `compareTo` method of a particular class.
+
+As an example, the natural ordering of Dogs, as we stated previously, is defined according to the value of size.
+
+What if we'd like to sort Dogs in a different way than their natural ordering, such as by alphabetical order of their name? How can we tell the `max` function that we'd like to find the maximum in a different way?
+
+#### Hof way
+
+Let's first consider this problem at a more abstract way.
+
+If we were to use higher order functions, we could simply pass a different `compare` callback that compares the objects in a different way. For example in python we could write:
+
+```py
+def print_larger(x, y, compare, stringfy):
+    if compare (x, y):
+        return stringfy(x)
+    return stringfy(y)
+```
+
+Notice how the above code already supports multiple orderings since we could simply pass in different `compare` function.
+
+Now, consider the following subtype polymorphism approach. How can we augment the code to support multiple orderings?
+
+```py
+# this is not really valid python, it's just pseudocode
+def print_larger(T x, T y, comparator<T>, c):
+    if c.compare(x, y):
+        return x.str()
+    return y.str()
+```
+
+There are a few BAD solutions to this problem. For example: write different functions for different orderings and just document which function is for what ordering, or we could pass an extra string to specify which option corresponds to which ordering, etc.
+
+But the most clean way that Java came up with is to pass an extra `comparator` object `c` and it will basically find out how we should compare the objects correspoding to type `T`:
+
+```py
+# this is not really valid python, it's just pseudocode
+def print_larger(T x, T y, comparator<T>, c):
+    if c.compare(x, y):
+        return x.str()
+    return y.str()
+```
+
+#### Java's way
+
+Java's way of doing this is by using `Comparator`'s. Since a comparator is an object, the way we'll use Comparator is by writing a nested class inside Dog that implements the Comparator interface.
+
+But first, what's inside this interface?
+
+```java
+public interface Comparator<T> {
+    int compare(T o1, T o2);
+}
+```
+
+This shows that the `Comparator` interface requires that any implementing class implements the `compare` method. The rule for `compare` is just like `compareTo`:
+
+- Return negative number if o1 < o2.
+- Return 0 if o1 equals o2.
+- Return positive number if o1 > o2.
+
+Let's give Dog a NameComparator. To do this, we can simply defer to String's already defined `compareTo` method.
+
+> Note: to use `comparator` we need to `import` it, which we don't have to do for `comparable`s. Why? It's just because somehow Java designers think that `comparable`s are more important and should be built-in, w/o having to be imported.
+
+Note that we've declared `NameComparator` to be a `static` class. A minor difference, but we do so because we do not need to instantiate a Dog to get a NameComparator. Let's see how this Comparator works in action.
+
+```java
+public class Dog implements Comparable<Dog> {
+    /* ... */
+
+    public static class NameComparator implements Comparator<Dog> {
+        @Override
+        public int compare(Dog a, Dog b) {
+            return a.name.compareTo(b.name);
+        }
+    }
+}
+
+/* DIFFERENT FILE */
+
+public class DogLauncher {
+    public static void main(String[] args) {
+        Dog d1 = new Dog("Elyse", 3);
+        Dog d2 = new Dog("Sture", 9);
+
+        // We could now use the NameComparator object to compare based on name.
+        Dog.NameComparator nameCmp = new Dog.NameComparator();
+        if (nameCmp.compare(d1, d3) > 0) {
+            d1.bark();
+        }
+        else {
+            d3.bark();
+        }
+    }
+}
+```
+
+However, in Java we always try to encapsulate our inner variables and even classes, since we don't want any outer source to be messing around these important data that defines our class. Also, since this inner class is not really a huge class, and is simply a helper class, so we can make it `private`, and use a `getNameComparator` method.
+
+> Note: Does this make any difference? Not really, it just matches how most Java libraries are implemented, and has been a convention in Java.
+
+```java
+import java.util.Comparator;
+
+public class Dog implements Comparable<Dog> {
+    /* ... */
+
+    public int compareTo(Dog uddaDog) {
+        return this.size - uddaDog.size;
+    }
+
+    private static class NameComparator implements Comparator<Dog> {
+        public int compare(Dog a, Dog b) {
+            return a.name.compareTo(b.name);
+        }
+    }
+
+    public static Comparator<Dog> getNameComparator() {
+        return new NameComparator();
+    }
+}
+```
+
+Note that the core idea of this Java way is actually still just passing a differnt function, but since Java can't pass functions, so we instead pass a Comparator object.
+
+![](./note-img/4-3/comparator-1.PNG)
+![](./note-img/4-3/comparator-2.PNG)
+
+#### Summary
+
+Note: The core idea to compare based on different orderings is still by passing different functions (or callbacks) to the method that uses these comparators.
+
+But since in Java we can't pass a function (there's just no such thing like a function in other languages, all Java has is methods.), so instead we pass an object, which in turn holds that method we'd like to pass.
+
+So in the code that uses our callback, in other languages like python, we could simply call the function by writing `compare(x, y)`. This is a more "Functional" style.
+
+But Java is NOT a functional language, it's more an OOP language, so we'd wrap up the needed function as a method in an interface, so that we can simply use these comparators in our code and assume that someone else or we will implement these compare methods (e.g. Arrays.sort). do `cmp.compare(x, y)`, where `cmp` is the `Comparator` type parameter.
+
+![](./note-img/4-3/comparator-4.PNG)
+
+To summarize, `interface`s in Java provide us with the ability to make **callbacks**. Sometimes, a function needs the help of another function that might not have been written yet (e.g. `max` needs `compareTo`). A callback function is the helping function (in the scenario, `compareTo`). In some languages, this is accomplished using explicit function passing; **in Java, we wrap the needed function in an `interface`.**
+
+A `Comparable` says, "I want to compare myself to another object". It is imbedded within the object itself, and it defines the natural ordering of a type. A `Comparator`, on the other hand, is more like a third party machine that compares two objects to each other. Since there's only room for one `compareTo` method, if we want multiple ways to compare, we must turn to `Comparator`.
+
+---
+
+## 4-4 Libraries, Abstract Classes, Packages
+
+### Abstract Data Types (ADTs)
+
+We've actually already built 2 ADTs: List61B and Deque. Let's consider Deque now.
+
+![deque](./note-img/4-4/deque.png)
+![ADT so far](./note-img/4-4/ADT-sofar.PNG)
+
+We have this interface `deque` that both `ArrayDeque` and `LinkedListDeque` implement. What is the relationship between Deque and its implementing classes? Well, `deque` simply provides a list of methods (behaviors):
+
+```java
+public void addFirst(T item);
+public void addLast(T item);
+public boolean isEmpty();
+public int size();
+public void printDeque();
+public T removeFirst();
+public T removeLast();
+public T get(int index);
+```
+
+These methods are **implemented** by `ArrayDeque` and `LinkedListDeque`.
+
+In Java, Deque is called an `interface`. Conceptually, we call deque an **Abstract data type**. An ADT (like Deque) only comes with behaviors, not any concrete ways to exhibit those behaviors. In this way, it is abstract.
+
+Side Story:
+
+![side story](./note-img/4-4/interface-inheritance.PNG)
+
+### Java Libraries
+
+Java has certain built-in Abstract data types that you can use. These are packaged in Java Libraries.
+
+The three most important ADTs come in the java.util library:
+
+- [List](https://docs.oracle.com/javase/8/docs/api/java/util/List.html): an ordered collection of items
+  - A popular implementation is the [ArrayList](https://docs.oracle.com/javase/8/docs/api/java/util/ArrayList.html)
+- [Set](https://docs.oracle.com/javase/7/docs/api/java/util/Set.html): an unordered collection of strictly unique items (no repeats)
+  - A popular implementation is the [HashSet](https://docs.oracle.com/javase/7/docs/api/java/util/HashSet.html)
+- [Map](https://docs.oracle.com/javase/8/docs/api/java/util/Map.html): a collection of key/value pairs. You access the value via the key.
+  - A popular implementation is the [HashMap](https://docs.oracle.com/javase/8/docs/api/java/util/HashMap.html)
+
+Finish the exercises below by using the above three ADT's. Reading the documentations linked above will help immensely.
+
+**Exercise 4.4.1** Write a method `getWords` that takes in a `String inputFileName` and puts every word from the input file into a list. Recall how we read words from a file in proj0. (\*Hint: use `In`)
