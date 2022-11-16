@@ -1486,6 +1486,18 @@ Side Story:
 
 ![side story](./note-img/4-4/interface-inheritance.PNG)
 
+> Note: Recall our implementation of `OffByN` class, where we get to pick the value of N we want, which makes it as if we're generating functions.
+
+Some exercises about ADTs.
+
+1. Stack:
+   ![stack](./note-img/4-4/stack.PNG)
+   Ans: Linked List is a little faster (since never have to resize)
+
+2. A made up example:
+   ![grabbag](./note-img/4-4/gragbag.PNG)
+   Ans: Array
+
 ### Java Libraries
 
 Java has certain built-in Abstract data types that you can use. These are packaged in Java Libraries.
@@ -1499,6 +1511,251 @@ The three most important ADTs come in the java.util library:
 - [Map](https://docs.oracle.com/javase/8/docs/api/java/util/Map.html): a collection of key/value pairs. You access the value via the key.
   - A popular implementation is the [HashMap](https://docs.oracle.com/javase/8/docs/api/java/util/HashMap.html)
 
+Some lecture slides:
+
+![Collections](./note-img/4-4/Collections.PNG)
+![Lists, Sets, and Maps](./note-img/4-4/Java-libraries.PNG)
+
 Finish the exercises below by using the above three ADT's. Reading the documentations linked above will help immensely.
 
 **Exercise 4.4.1** Write a method `getWords` that takes in a `String inputFileName` and puts every word from the input file into a list. Recall how we read words from a file in proj0. (\*Hint: use `In`)
+
+**Exercise 4.4.2** Write a method `countUniqueWords` that takes in a `List<String>` and counts how many unique words there are in the file.
+
+**Exercise 4.4.3** Write a method `collectWordCount` that takes in a `List<String> targets` and a `List<String> words` and finds the number of times each target word appears in the word list.
+
+```java
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.HashMap;
+
+public class DemoCollections {
+
+    /**
+     * Returns a lower case version of the string with
+     * all characters except letters removed.
+     */
+    public static String cleanString(String s) {
+        return s.toLowerCase().replaceAll("[^a-z]", "");
+    }
+
+    /**
+     * Gets a list of all words in the file.
+     */
+    public static List<String> getWords(String inputFilename) {
+        List<String> words = new ArrayList<>();
+        In in = new In(inputFilename);
+        while (!in.isEmpty()) {
+            String nextWord = cleanString(in.readString());
+            words.add(nextWord);
+        }
+        return words;
+    }
+
+    /**
+     * Returns the count of the number of unique words in words.
+     */
+    public static int countUniqueWords(List<String> words) {
+        /* Prof. Josh's solution */
+//        Set<String> wordSet = new HashSet<>();
+//        for (String word : words) {
+//            wordSet.add(word);
+//        }
+
+        Set<String> wordSet = new HashSet<>(words);
+        return wordSet.size();
+    }
+
+    /**
+     * Returns a map (a.k.a. dictionary) that tracks the count of all specified
+     * target words in words.
+     */
+    public static Map<String, Integer> collectWordCount(List<String> words, List<String> targets) {
+        Map<String, Integer> counts = new HashMap<>();
+
+        /* Initialize counts of targets in the map to 0 */
+        for (String t : targets){
+            counts.put(t, 0);
+        }
+
+        for (String s : words) {
+            if (counts.containsKey(s)) {
+                counts.put(s, counts.get(s) + 1);
+            }
+        }
+        return counts;
+    }
+
+    public static void main(String[] args) {
+        List<String> w = getWords("lotteryOfBabylon.txt");
+        System.out.println(countUniqueWords(w));
+
+		List<String> targets = new ArrayList<>();
+		targets.add("lottery");
+		targets.add("the");
+		targets.add("babylon");
+
+		System.out.println(collectWordCount(w, targets));
+    }
+}
+```
+
+We used a map because it makes an association between two things. In our case, we need an association between word and number.
+
+These three ADT's all extend from the Collection Interface. The collection interface is super vague. Java says collections "represent a group of objects, known as its elements".
+
+![collection_hierarchy](./note-img/4-4/collection_hierarchy.png)
+
+In the diagram above, the white boxes are interfaces. The blue boxes are concrete classes.
+
+### Java vs. Python
+
+Java is pretty verbose. The java code below looks a lot more cumbersome than the corresponding python code.
+
+![java code](./note-img/4-4/java.png)
+![python code](./note-img/4-4/python.png)
+
+![first-class-citizens](./note-img/4-4/first-class-citizens.PNG)
+![ADT-implementation](./note-img/4-4/ADT-implementation.PNG)
+
+But, Java has its upsides too! It gives you a lot of choices and freedom. For example, python only has one dictionary type which is declared using curly brackets {}. **With Java, if you want to use an ADT, you can choose what kind of implementation you want**. For example, if you want to use a map, you can choose: a Hashmap? a Treemap? etc.
+
+- Arguably, takes **less time to write programs**, due to features like:
+
+  - Static types (provides type checking and helps guide programmer).
+  - Bias towards interface inheritance leading to cleaner subtype polymorphism.
+  - Access control modifiers make abstraction barriers more solid.
+
+- **More efficient code**, due to features like:
+
+  - Ability to have more control over engineering tradeoffs.
+  - Single valued arrays lead to better performance.
+
+- Basic data structures more closely **resemble underlying hardware**:
+  - Would be weird to do ArrayDeque in Python, since there is no need for array resizing. However, in hardware (see 61C), variable length arrays don’t exist.
+
+![factory methods](./note-img/4-4/factory.PNG)
+
+### Abstract classes
+
+![](./note-img/4-4/interface-so-far.PNG)
+![](./note-img/4-4/closer-look-interface.PNG)
+![](./note-img/4-4/interface-even-more.PNG)
+![](./note-img/4-4/interface-summary.PNG)
+
+Next, we introduce the abstract class.
+
+![](./note-img/4-4/intro-abstract.PNG)
+![](./note-img/4-4/example.PNG)
+![](./note-img/4-4/quiz.PNG)
+
+The answer is 2 (`shred()` and `connectToWifi()`).
+
+> Note: An abstract class does NOT need to implement interface methods. And the unimplemented abstract methods will just be there, waiting for a sub-class to override all of them.
+
+> Note: A `private` varibale in an `abstract` class works the same as in normal classes, i.e., it can only be accessed within the abstract class itself (for example, we can use it in other concrete methods in the abstract class). However, its subclasses that extends it does NOT inherit the private variable.
+
+![](./note-img/4-4/usecase-abstract.PNG)
+![](./note-img/4-4/usecase-2.PNG)
+![](./note-img/4-4/abstract-vs-interface.PNG)
+![](./note-img/4-4/abstract-in-java-lib.PNG)
+![](./note-img/4-4/abstract-in-java-lib-1.PNG)
+![](./note-img/4-4/whole.PNG)
+
+We've seen **interfaces** that can do a lot of cool things! They allow you to take advantage of interface inheritance and implementation inheritance. As a refresher, these are the qualities of interfaces:
+
+- All methods must be `public`.
+- All variables must be `public static final`.
+- Can NOT be instantiated.
+- All methods are by default abstract unless specified to be `default`.
+- Can implement more than 1 interface per class.
+
+We will now introduce a new class that lies somewhere in between interfaces and concrete classes: the **abstract class**. Below are the characteristics of abstract classes:
+
+- Methods can be `public` or `private`.
+- Can have any types of variables.
+- Can NOT be instantiated.
+- Methods are by default concrete unless specified to be `abstract`.
+- Can only implement 1 abstract class per class.
+
+Basically, abstract classes can do everything interfaces can do and more.
+
+**When in doubt, try to use interfaces** in order to reduce complexity.
+
+#### More about interfaces and abstract classes
+
+1. [Oracle: abstract classes](https://docs.oracle.com/javase/tutorial/java/IandI/abstract.html)
+2. [interface default vs. abstract method](https://stackoverflow.com/questions/19998454/when-to-use-java-8-interface-default-method-vs-abstract-method)
+
+#### Weird stuff
+
+1. Which `bark()` is called?
+
+   ```java
+    public class Tree() {
+        public int bark() {
+            // ...
+        }
+    }
+
+    public interface Dog {
+        default int bark() {
+            // ...
+        }
+    }
+
+    public class Mutant extends Tree implements Dog {
+        public static void main(String[] args) {
+                (new Mutant()).bark();
+        }
+    }
+   ```
+
+   The one in `Tree` is called.
+
+   > If any class in the hierarchy has a method with same signature, then default methods become irrelevant. A default method cannot override a method from java.lang.Object. The reasoning is very simple, it’s because Object is the base class for all the java classes. So even if we have Object class methods defined as default methods in interfaces, it will be useless because Object class method will always be used. That’s why to avoid confusion, we can’t have default methods that are overriding Object class methods.
+
+#### When to use abstract classes and when to use interfaces
+
+[abstract class vs. interfaces](https://www.devfields.com/abstract-classes-and-interfaces/)
+
+There’s a basic rule that works almost everytime: Use abstract classes if you can make the statement “A is-a B”. Use interfaces if you can make the statement “A is-capable-of doing as”, or also, abstract for what a class is, interface for what a class can do.
+
+for example, we can say a triangle is a polygon but it makes no sense to say a triangle is capable of being a polygon.
+
+### Packages
+
+![zen of python](./note-img/4-4/zenofpy.PNG)
+![](./note-img/4-4/canonicalization.PNG)
+![](./note-img/4-4/packages.PNG)
+![](./note-img/4-4/importing.PNG)
+
+> Why is wildcard import bad?
+>
+> Answer: It can contaminate our namespaces.
+
+![](./note-img/4-4/import-static.PNG)
+![](./note-img/4-4/summary.PNG)
+
+Note that `import` in Java is very different from other languages like Python or JavaScript, where in those languages import always means to import a whole file.
+
+But in Java, we do NOT import a whole file, but rather when we say `import ug.joshh.animal.Dog`, it's essentially tells the compiler to replace all `Dog` to `ug.joshh.animal.Dog` in our code.
+
+#### Summary
+
+A namespace is a region that can be used to organize code. Packages are a specific type of namespace that is used to organize classes and interfaces. To use a class from a different package use the following syntax:
+
+```java
+package_name.classname.subclassname a = new package_name.classname.subclassname();
+```
+
+To make your life easier while typing out code, you can simply import the class following the syntax below:
+
+```java
+import package_name.classname.subclassname;
+```
+
+Replace the subclassname with a `*` if you want to important everything from the class.
