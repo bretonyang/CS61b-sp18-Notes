@@ -84,7 +84,7 @@ public class ArrayMap<K, V> implements Map61B<K, V> {
     public void test() {
         ArrayMap<Integer, Integer> am = new ArrayMap<>();
         am.put(2, 5);
-        assertEquals(5, am.get(2));
+        assertEquals((Integer) 5, am.get(2)); // error!
     }
 
     public static void main(String[] args) {

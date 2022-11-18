@@ -298,7 +298,7 @@ ArrayMapTest.java:11: error: reference to assertEquals is ambiguous
     both method assertEquals(long, long) in Assert and method assertEquals(Object, Object) in Assert match
 ```
 
-We get this error because JUnit's `assertEquals` method is **overloaded**, eg. `assertEquals(int expected, int actual)`, `assertEquals(Object expected, Object actual)`, etc. Thus, Java is unsure which method to call for `assertEquals(expected, am.get(2))`, which requires one argument to be autoboxed/unboxed.
+We get this error because JUnit's `assertEquals` method is **overloaded**, eg. `assertEquals(long expected, long actual)`, `assertEquals(Object expected, Object actual)`, etc (note that junit does NOT have a `assertEquals(int expected, int actual)` method). Thus, Java is unsure which method to call for `assertEquals(expected, am.get(2))`, which requires one argument to be autoboxed/unboxed.
 
 - **Excercise 5.2.2** What would we need to do in order to call `assertEquals(long, long)`?
   A.) Widen `expected` to a `long`
@@ -306,10 +306,232 @@ We get this error because JUnit's `assertEquals` method is **overloaded**, eg. `
   C.) Unbox `am.get(2)`
   D.) Widen the unboxed `am.get(2)` to `long`
 
-  **Answer**: A, C, and D all work.
+  **Answer**: We'll need all of A, C, and D to work.
+
+  ![quiz-1](./note-img/5-1/assertEquals-quiz-1.PNG)
 
 - **Excercise 5.2.3** How would we make it work with `assertEquals(Object, Object)`?
   **Answer**: Autobox `expected` to an `Integer` because Integers are Objects.
 
-- **Excercise 5.2.4** How do we make the code compile with casting?
-  **Answer**: Cast `expected` to `Integer`.
+  ![quiz-2](./note-img/5-1/assertEquals-quiz-2.PNG)
+
+- **Excercise 5.2.4** How do we make the code compile without having any runtime conversions? (Note: The answers in Exercise 5.2.2 and 5.2.3 both use runtime conversion)
+  **Answer**: Cast `expected` to `Integer`. (Try to think about why not cast it to `Long`)
+
+  ![quiz-3](./note-img/5-1/assertEquals-quiz-3.PNG)
+
+### Generic Methods
+
+The goal for the next section is to create a class `MapHelper` which will have two methods:
+
+- `get(Map61B, key)`: Returns the value corresponding to the given key in the map if it exists, otherwise null.
+  - This is useful because `ArrayMap` currently has a bug where the get method throws an `ArrayIndexOutOfBoundsException` if we try to get a key that doesn't exist in the `ArrayMap`.
+- `maxKey(Map61B)`: Returns the maximum of all keys in the given ArrayMap. Works only if keys can be compared.
+
+Let's implement these methods inside the `MapHelper` class:
+
+```java
+package map61b;
+
+public class MapHelper {
+  // CODE HERE
+}
+```
+
+#### Implementing get(Map61B, key)
+
+`get` is a static method that takes in a Map61B instance and a key and returns the value that corresponds to the key if it exists, otherwise returns null.
+
+**Excercise 5.2.5** Try writing this method yourself!
+
+As you see, we could write a very limited method by declare the parameters as String and Integer like so:
+
+```java
+/**
+  * Returns the value corresponding to the given key in the map
+  * if it exists, otherwise null.
+  */
+public static Integer get(Map61B<String, Integer> map, String key) {
+    if (map.containsKey(key)) {
+        return map.get(key);
+    }
+    return null;
+}
+```
+
+We are restricting this method to only take in `Map61B<String, Integer>`, which is not what we want! We want it to take any kind of `Map61B`, no matter what the actual types for the generics are. However, the following method header produces a compilation error:
+
+```java
+public static V get(Map61B<K, V> map, K key) {
+  // ...
+}
+```
+
+With generics defined in class headers, Java waits for the user to instantiate an object of the class in order to know what actual types each generic will be.
+
+However, here we'd like a **generic specific to this method**. Moreover, we do not care what actual types `K` and `V` take on in our `Map61B` argument -- the important part is that whatever `V` is, an object of type `V` is returned.
+
+Thus we see the need for **generic methods**. To declare a method as generic, the **formal type parameters must be specified before the return type**:
+
+```java
+public static <K, V> V get(Map61B<K, V> map, K key) {
+  // ...
+}
+```
+
+The complete syntax for invoking this method would be:
+
+```java
+ArrayMap<String, Integer> m = new ArrayMap<>();
+String key = MapHelper.<String, Integer>get(m, "house");
+```
+
+The type has been explicitly provided.
+
+Generally, you don't need any explicit declaration of what type you are inserting. Java can infer that isMap is an ArrayMap from Integers to Strings.
+
+```java
+ArrayMap<String, Integer> m = new ArrayMap<>();
+String key = MapHelper.get(m, "house");
+```
+
+More on generic methods: [oracel docs](https://docs.oracle.com/javase/tutorial/java/generics/methods.html) and [Type Inference](https://docs.oracle.com/javase/tutorial/java/generics/genTypeInference.html)
+
+### Implementing maxKey(Map61B)
+
+**Exercise 5.2.6** Try writing this method yourself!
+
+> Note: The enhanced for-loop `for (int item : items)` can be used on arrays and `Collection` objects (e.g. `List<T>`).
+
+Here's something that looks OK, but isn't quite correct:
+
+```java
+public static <K, V> K maxKey(Map61B<K, V> map) {
+    List<K> keylist = map.keys();
+    K largest = keylist.get(0);
+    for (K k: keylist) {
+        if (k > largest) {
+            largest = k;
+        }
+    }
+    return largest;
+}
+```
+
+**Exercise 5.2.7** Can you spot what's wrong with this method?
+
+**Answer**: The `>` operator can't be used to compare `K` objects. This only works on primitives and `map` may not hold primitives
+
+We will rewrite this method using the `compareTo` method:
+
+```java
+public static <K, V> K maxKey(Map61B<K, V> map) {
+    List<K> keylist = map.keys();
+    K largest = keylist.get(0);
+    for (K k: keylist) {
+        if (k.compareTo(largest) > 0) {
+            largest = k;
+        }
+    }
+    return largest;
+}
+```
+
+**Exercise 5.2.8** This is still wrong, why?
+
+**Answer** Not all Objects have a `compareTo` method. Thus this code won't compile!
+
+To solve this problem, we need to somehow let the compiler know that **`K` is-a `Comparable`**, so that the compiler will know that `k` will always have a `compareTo` method.
+
+To achive this, we'll use the following syntax for generic methods in the header of the function:
+
+```java
+public static <K extends Comparable<K>, V> K maxKey(Map61B<K, V> map) {
+    List<K> keyList = map.keys();
+    K largest = keyList.get(0);
+    for (K k : keyList) {
+        if (k.compareTo(largest) > 0) {
+            largest = k;
+        }
+    }
+    return largest;
+}
+```
+
+The `K extends Comparable<K>` means keys must implement the `Comparable` interface and can be compared to other `K`'s. **We need to include the `<K>` after `Comparable` because `Comparable` itself is a generic interface!** Therefore, we must specify what kind of comparable we want. **In this case, we want to compare K's with K's**.
+
+### Type upper bounds
+
+You might be wondering, **why does it "extend" comparable and not "implement"?** `Comparable` is an interface after all.
+
+Well, it turns out, `extends` in this context has a different meaning than in the polymorphism context.
+
+When we say that the `Dog` class `extends` the `Animal` class, we are saying that Dogs can do anything that animals can do and more! We are giving Dog the abilities of an animal.
+
+When we say that `K` `extends` `Comparable<K>`, we are simply stating a fact. We aren't giving K the abilities of a Comparable, we are just saying that **K must be Comparable**. This different use of `extends` is called **type upper bounding**. (This is just the word that designers of Java decides to use, which is very confusing, since it has NOTHING to do with the `extends` keyword used when defining a class)
+
+Confusing? That's okay, it is confusing. Just remember, in the context of inheritance, the `extends` keyword is active in giving the subclass the abilities of the superclass. On the other hand, in the context of generics, `extends` simply states a fact: You must be a subclass of whatever you're extending. When used with generics (like in generic method headers), `extends` imposes a constraint rather than grants new abilities. It's akin to a fortune teller, who just tells you something without doing much about it.
+
+#### Notes on Bounded Type Parameters
+
+The [oracle doc](https://docs.oracle.com/javase/tutorial/java/generics/bounded.html) has a great documentation on bounded type parameters:
+
+There may be times when you want to **restrict the types that can be used as type arguments in a parameterized type**. For example, a method that operates on numbers might only want to accept instances of `Number` or its subclasses. This is what **bounded type parameters** are for.
+
+To declare a bounded type parameter, list the type parameter's name, followed by the `extends` keyword, followed by its upper bound, which in this example is `Number`. **Note that, in this context, `extends` is used in a general sense to mean either "extends" (as in classes) or "implements" (as in interfaces).**
+
+```java
+public class Box<T> {
+
+    private T t;
+
+    public void set(T t) {
+        this.t = t;
+    }
+
+    public T get() {
+        return t;
+    }
+
+    public <U extends Number> void inspect(U u){
+        System.out.println("T: " + t.getClass().getName());
+        System.out.println("U: " + u.getClass().getName());
+    }
+
+    public static void main(String[] args) {
+        Box<Integer> integerBox = new Box<Integer>();
+        integerBox.set(new Integer(10));
+        integerBox.inspect("some text"); // compilation error: since it is-not-a Number
+    }
+}
+```
+
+We can even hava multiple bounds for a type paramter (this is supplementatry material, cs61b doesn't really need this):
+
+```java
+<T extends B1 & B2 & B3>
+```
+
+In this example, `T` must be a subtype of `B1`, `B2`, and `B3`. If one of the bounds is a class, it must be specified first, otherwise it's a compilation error.
+
+![](./note-img/5-1/typeBounding.PNG)
+
+### Summary
+
+We’ve seen four new features of Java that make generics more powerful:
+
+- Autoboxing and auto-unboxing of primitive wrapper types.
+- Promotion/widening between primitive types.
+- Specification of generic types for methods (before return type).
+- Bounded type parameters in generic methods (e.g. `K extends Comparable<K>`).
+
+![summary](./note-img/5-1/summary.PNG)
+
+### More syntax on generics
+
+Yes, there's even more syntax that's not covered by CS61b, so here they are:
+
+[Lower Bounded Wildcards](https://docs.oracle.com/javase/tutorial/java/generics/lowerBounded.html)
+[Type Erasure](https://docs.oracle.com/javase/tutorial/java/generics/genTypes.html)
+
+Or just study the whole oracle java tutorial on generics: [Generics](https://docs.oracle.com/javase/tutorial/java/generics/index.html)
