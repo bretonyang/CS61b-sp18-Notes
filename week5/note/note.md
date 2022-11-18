@@ -1,5 +1,33 @@
 # Week 5
 
+- [Week 5](#week-5)
+  - [5-1 Autoboxing](#5-1-autoboxing)
+    - [Autoboxing and Unboxing](#autoboxing-and-unboxing)
+    - [Caveats](#caveats)
+    - [Widening](#widening)
+  - [5-2 Immutability](#5-2-immutability)
+  - [5-3 Generics](#5-3-generics)
+    - [Creating Another Generic Class](#creating-another-generic-class)
+    - [ArrayMap and Autoboxing Puzzle](#arraymap-and-autoboxing-puzzle)
+    - [Generic Methods](#generic-methods)
+      - [Implementing get(Map61B, key)](#implementing-getmap61b-key)
+    - [Implementing maxKey(Map61B)](#implementing-maxkeymap61b)
+    - [Type upper bounds](#type-upper-bounds)
+      - [Notes on Bounded Type Parameters](#notes-on-bounded-type-parameters)
+    - [Summary](#summary)
+    - [More syntax on generics](#more-syntax-on-generics)
+  - [6-1 Lists, Sets, and ArraySet](#6-1-lists-sets-and-arrayset)
+    - [Lists in Real Java Code](#lists-in-real-java-code)
+    - [Sets](#sets)
+      - [Java](#java)
+      - [Python](#python)
+      - [JavaScript](#javascript)
+    - [ArraySet](#arrayset)
+    - [Throwing Exceptions](#throwing-exceptions)
+    - [Iteration](#iteration)
+    - [Enhanced For Loop](#enhanced-for-loop)
+    - [Implementing Iterators](#implementing-iterators)
+
 ## 5-1 Autoboxing
 
 In the previous parts of this book, we've talked about various data structures and the way that Java supports their implementation. In this chapter, we'll discuss a variety of supplementary topics that are used in industrial strength implementations of Java programs.

@@ -1,5 +1,19 @@
 # Week 3
 
+- [Week 3](#week-3)
+  - [3-1 Testing](#3-1-testing)
+    - [A new way (intro)](#a-new-way-intro)
+    - [Ad Hoc Testing is Not Fun](#ad-hoc-testing-is-not-fun)
+      - [Code](#code)
+    - [JUnit Test](#junit-test)
+      - [Code](#code-1)
+    - [Selection Sort](#selection-sort)
+      - [Code](#code-2)
+    - [Better JUnit](#better-junit)
+      - [Code](#code-3)
+    - [Testing Philosophy](#testing-philosophy)
+    - [More on JUnit (Extra)](#more-on-junit-extra)
+
 Don't forget the 2 things to set up after opening a new Intellij project:
 
 1. Set **SDK** to path `C:\Program Files\Java\jdk-19`, which is where we installed jdk at.
