@@ -535,3 +535,304 @@ Yes, there's even more syntax that's not covered by CS61b, so here they are:
 [Type Erasure](https://docs.oracle.com/javase/tutorial/java/generics/genTypes.html)
 
 Or just study the whole oracle java tutorial on generics: [Generics](https://docs.oracle.com/javase/tutorial/java/generics/index.html)
+
+---
+
+## 6-1 Lists, Sets, and ArraySet
+
+In this section we will learn about how to use Java's built in `List` and `Set` data structures as well as build our own `ArraySet`.
+
+So far, we've already built two kinds of lists: `AList` and `SLList`. We also built an interface `List61B` to enforce specific list methods `AList` and `SLList` had to implement. You can find the code at the following links:
+
+- [List61B](https://github.com/Berkeley-CS61B/lectureCode-sp19/blob/master/inheritance2/List61B.java)
+- [AList](https://github.com/Berkeley-CS61B/lectureCode-sp19/blob/master/inheritance1/AList.java)
+- [SLList](https://github.com/Berkeley-CS61B/lectureCode-sp19/blob/master/inheritance2/SLList.java)
+
+This is how we might use List61B type:
+
+```java
+List61B<Integer> L = new AList<>();
+L.addLast(5);
+L.addLast(10);
+L.addLast(15);
+L.print();
+```
+
+### Lists in Real Java Code
+
+We built a list from scratch, but Java provides a built-in `List` interface and several implementations, e.g. `ArrayList`. Remember, since `List` is an `interface` we can't instatiate it! **We must instatiate one of its implementations**.
+
+To access this, we can use the full name ('canonical name') of classes, interfaces:
+
+```java
+java.util.List<Integer> L = new java.util.ArrayList<>();
+```
+
+However this is a bit verbose. In a similar way to how we import `JUnit`, we can import java libraries:
+
+```java
+import java.util.List;
+import java.util.ArrayList;
+
+public class Example {
+    public static void main(String[] args) {
+        List<Integer> L = new ArrayList<>();
+        L.add(5);
+        L.add(10);
+        System.out.println(L);
+    }
+}
+```
+
+### Sets
+
+Sets are a collection of unique elements - you can only have one copy of each element. There is also no sense of order.
+
+#### Java
+
+Java has the `Set` interface along with implementations, e.g. `HashSet`. Remember to import them if you don't want to use the full name!
+
+```java
+import java.util.Set;
+import java.util.HashSet;
+```
+
+Example use:
+
+```java
+Set<String> s = new HashSet<>();
+s.add("Tokyo");
+s.add("Lagos");
+System.out.println(S.contains("Tokyo")); // true
+```
+
+#### Python
+
+In python, we simply call `set()`. To check for contains we don't use a method but the keyword `in`.
+
+```py
+s = set()
+s.add("Tokyo")
+s.add("Lagos")
+print("Tokyo" in s) # True
+```
+
+#### JavaScript
+
+In JavaScript, it's pretty similar to Java, but we have a different name for `contains` method, we use `has` method. Also, in JavaScript, a set can contain different data types.
+
+```js
+const s = new Set();
+s.add(1);
+s.add(2);
+console.log(s.has(2)); // true
+```
+
+### ArraySet
+
+Our goal is to make our own set, `ArraySet`, with the following methods:
+
+- `add(value)`: add the value to the set if not already present
+- `contains(value)`: check to see if ArraySet contains the value
+- `size()`: return number of values
+
+Let's try to implement it, here's the [starter code](https://github.com/Berkeley-CS61B/lectureCode-sp19/blob/master/exercises/DIY/inheritance4/ArraySet.java)
+
+Here's the code:
+
+```java
+/* Naive implementation of ArraySet, where resizing is not
+* taken into account. */
+public class ArraySet<T> {
+
+    private T[] items;
+    private int size;
+
+    public ArraySet() {
+        items = (T[]) new Object[100];
+        size = 0;
+    }
+
+    /**
+     * add the value to the set if not already present
+     */
+    public void add(T item) {
+        if (contains(item)) {
+            return;
+        }
+        items[size] = item;
+        size++;
+    }
+
+    /**
+     * check to see if ArraySet contains the value
+     */
+    public boolean contains(T item) {
+        for (int i = 0; i < size; i++) {
+            if (item.equals(items[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * return number of values
+     */
+    public int size() {
+        return size;
+    }
+
+    public static void main(String[] args) {
+        ArraySet<String> s = new ArraySet<>();
+//        s.add(null);
+        s.add("horse");
+        s.add("fish");
+        s.add("house");
+        s.add("fish");
+        System.out.println(s.contains("horse"));
+        System.out.println(s.size);
+    }
+
+    /* Also to do:
+    1. Make ArraySet implement the Iterable<T> interface.
+    2. Implement a toString method.
+    3. Implement an equals() method.
+    */
+
+}
+```
+
+Some terminologies:
+
+- The `T` in `public class ArraySet<T>` is called a **generic type variable**.
+- The `String` in `ArraySet<String> set = new ArraySet();` is called a **actual type argument**.
+
+### Throwing Exceptions
+
+Our `ArraySet` implementation from the previous section has a small error. When we add `null` to our ArraySet, we get a `NullPointerException`.
+
+The probelm lies in the `contains` method where we check `items[i].equals(x)`. If the value at `items[i]` is `null`, then we are calling `null.equals(x)` -> `NullPointerException`.
+
+**Exceptions cause normal flow of control to stop**. We can in fact choose to throw our own exceptions. In JavaScript, we use the `throw` keyword and `throw new Error("text")`. In Java, Exceptions are objects and we throw exceptions using the following format:
+
+`throw new ExceptionObject(parameter1, ...)`
+
+Let's throw an exception when a user tries to add `null` to our `ArraySet`. We'll throw an `IllegalArgumentException` which takes in one parameter (a `String` message).
+
+Our updated `add` method:
+
+```java
+/* Associates the specified value with the specified key in this map.
+   Throws an IllegalArgumentException if the key is null. */
+public void add(T x) {
+    if (x == null) {
+        throw new IllegalArgumentException("can't add null");
+    }
+    if (contains(x)) {
+        return;
+    }
+    items[size] = x;
+    size += 1;
+}
+```
+
+> Note: We can actually use `try...catch` to catch the Exception, see the legacy part of the note.
+
+We get an Exception either way - why is this better?
+
+1. We have control of our code: we consciously **decide at what point to stop the flow** of our program
+2. More **useful Exception type** and **helpful error message** for those using our code
+
+However, it would be better if the program doesn't crash at all. There are different things we could do in this case. Here are some below:
+
+- **Approach 1**: Don't add `null` to the array if it is passed into `add`
+
+- **Approach 2**: Change the `contains` method to account for the case if `items[i] == null`.
+
+Whatever you decide, it is important that users know what to expect. That is why documentation (such as comments about your methods) is very important.
+
+### Iteration
+
+We can use a clean enhanced for loop with Java's HashSet
+
+```java
+Set<String> s = new HashSet<>();
+s.add("Tokyo");
+s.add("Lagos");
+for (String city : s) {
+    System.out.println(city);
+}
+```
+
+However, if we try to do the same with our ArraySet, we get an error. How can we enable this functionality?
+
+### Enhanced For Loop
+
+Let's first understand what is happening when we use an enhanced for loop. We can "translate" an enhanced for loop into an ugly, manual approach.
+
+```java
+Set<String> s = new HashSet<>();
+// ...
+for (String city : s) {
+    // ...
+}
+```
+
+This translates to:
+
+```java
+Set<String> s = new HashSet<>();
+// ...
+while (seer.hasNext()) {
+    String city = seer.next();
+    // ...
+}
+```
+
+Let’s strip away the magic so we can build our own classes that support this.
+
+The key here is an object called an **_iterator_**.
+
+For our example, in List.java we might define an `iterator()` method that returns an `Iterator` object.
+
+```java
+public Iterator<E> iterator();
+```
+
+Now, we can use that object to loop through all the entries in our list:
+
+```java
+List<Integer> friends = new ArrayList<Integer>();
+// ...
+Iterator<Integer> seer = friends.iterator();
+
+while (seer.hasNext()) {
+  System.out.println(seer.next());
+}
+```
+
+This code behaves identically to the foreach loop version above.
+
+There are three key methods in our iterator approach:
+
+First, we get a new `Iterator` object with `Iterator<Integer> seer = friends.iterator();`
+
+Next, we loop through the list with our while loop. We check that there are still items left with `seer.hasNext()`, which will return `true` if there are unseen items remaining, and `false` if all items have been processed.
+
+Last, `seer.next()` does two things at once. It **returns the next element of the list**, and here we print it out. It also **advances the iterator by one item**. In this way, the iterator will only inspect each item once.
+
+### Implementing Iterators
+
+In this section, we are going to talk about how to build a class to support iteration.
+
+Let's start by thinking about what the compiler need to know in order to successfully compile the following iterator example:
+
+```java
+List<Integer> friends = new ArrayList<Integer>();
+Iterator<Integer> seer = friends.iterator();
+
+while(seer.hasNext()) {
+    System.out.println(seer.next());
+}
+```
