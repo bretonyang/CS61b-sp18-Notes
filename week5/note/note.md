@@ -23,10 +23,11 @@
       - [Python](#python)
       - [JavaScript](#javascript)
     - [ArraySet](#arrayset)
-    - [Throwing Exceptions](#throwing-exceptions)
-    - [Iteration](#iteration)
+  - [6-2 Throwing Exceptions](#6-2-throwing-exceptions)
+  - [6-3 Iteration](#6-3-iteration)
     - [Enhanced For Loop](#enhanced-for-loop)
     - [Implementing Iterators](#implementing-iterators)
+  - [6-4 Object Methods](#6-4-object-methods)
 
 ## 5-1 Autoboxing
 
@@ -736,7 +737,9 @@ Some terminologies:
 - The `T` in `public class ArraySet<T>` is called a **generic type variable**.
 - The `String` in `ArraySet<String> set = new ArraySet();` is called a **actual type argument**.
 
-### Throwing Exceptions
+---
+
+## 6-2 Throwing Exceptions
 
 Our `ArraySet` implementation from the previous section has a small error. When we add `null` to our ArraySet, we get a `NullPointerException`.
 
@@ -780,7 +783,9 @@ However, it would be better if the program doesn't crash at all. There are diffe
 
 Whatever you decide, it is important that users know what to expect. That is why documentation (such as comments about your methods) is very important.
 
-### Iteration
+---
+
+## 6-3 Iteration
 
 We can use a clean enhanced for loop with Java's HashSet
 
@@ -812,6 +817,7 @@ This translates to:
 ```java
 Set<String> s = new HashSet<>();
 // ...
+Iterator<String> seer = s.iterator();
 while (seer.hasNext()) {
     String city = seer.next();
     // ...
@@ -864,3 +870,198 @@ while(seer.hasNext()) {
     System.out.println(seer.next());
 }
 ```
+
+We can look at the **static types** of each object that calls a relevant method. `friends` is a List, on which `iterator()` is called, so we must ask:
+
+- Does the `List` interface have an `iterator()` method?
+
+`seer` is an `Iterator`, on which `hasNext()` and `next()` are called, so we must ask:
+
+- Does the `Iterator` interface have `next()`/`hasNext()` methods?
+
+So how do we implement these requirements?
+
+The `List` interface `extends` the `Iterable` interface, inheriting the abstract `iterator()` method. (Actually, `List` `extends` `Collection` which `extends` `Iterable`, but it's easier to codethink of this way to start.)
+
+```java
+public interface Iterable<T> {
+  Iterator<T> iterator();
+}
+```
+
+```java
+public interface List<T> extends Iterable<T>{
+    // ...
+}
+```
+
+Next, the compiler checks that Iterators have `hasNext()` and `next()`. The `Iterator` interface specifies these abstract methods explicitly:
+
+```java
+public interface Iterator<T> {
+  boolean hasNext();
+  T next();
+}
+```
+
+> What if someone calls `next` when `hasNext` returns false?
+>
+> This behavior is undefined. However, a common convention is to throw a `NoSuchElementException`. See [Discussion 5](https://sp19.datastructur.es/materials/discussion/disc05sol.pdf) for examples.
+
+> Will `hasNext` always be called before `next`?
+>
+> Not necessarily. This is sometimes the case when someone using the iterator knows exactly how many elements are in the sequence. Thus, we can't rely on the user calling `hasNext` before `next`. However, you can always call `hasNext` from within your `next` function.
+
+Specific classes will implement their own iteration behaviors for the interface methods. Let's look at an example. (Note: if you want to build this up from the start, follow along with the live coding in the video.)
+
+We are going to add iteration through keys to our ArraySet class. First, we write a new class called `ArraySetIterator`, nested inside of `ArraySet`:
+
+```java
+private class ArraySetIterator implements Iterator<T> {
+    private int curIdx;
+
+    public ArraySetIterator() {
+        curIdx = 0;
+    }
+
+    @Override
+    public boolean hasNext() {
+        return curIdx < size;
+    }
+
+    @Override
+    public T next() {
+        T returnItem = items[curIdx];
+        curIdx++;
+        return returnItem;
+    }
+}
+```
+
+This ArraySetIterator implements a `hasNext()` method, and a `next()` method, using `curIdx` as an index to keep track of its position in the array. For a different data structure, we might implement these two methods differently.
+
+**Thought Exercise**: How would you design `hasNext()` and `next()` for a linked list?
+
+We still want to be able to support the enhanced for loop, though, to make our calls cleaner. So, we need to make `ArraySet` implement the `Iterable` interface. The essential method of the Iterable interface is `iterator()`, which returns an `Iterator` object for that class. All we have to do is return an instance of our `ArraySetIterator` that we just wrote!
+
+Here we've seen **Iterable**, the interface that makes a class able to be iterated on, and requires the method `iterator()`, which returns an `Iterator` object. And we've seen **Iterator**, the interface that defines the object with methods to actually do that iteration. You can think of an `Iterator` as a machine that you put onto an `Iterable` that facilitates the iteration. Any `Iterable` is the object on which the `Iterator` is performing.
+
+With these two components, you can make fancy for loops for your classes!
+
+`ArraySet` code with iteration support is below:
+
+```java
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
+/* Naive implementation of ArraySet, where resizing is not
+* taken into account. */
+public class ArraySet<T> implements Iterable<T> {
+
+    private T[] items;
+    private int size;
+
+    public ArraySet() {
+        items = (T[]) new Object[100];
+        size = 0;
+    }
+
+    /**
+     * Add the value to the set if not already present
+     */
+    public void add(T item) {
+        if (item == null) {
+            throw new IllegalArgumentException("Can't add null to an ArraySet");
+        }
+        if (contains(item)) {
+            return;
+        }
+        items[size] = item;
+        size++;
+    }
+
+    /**
+     * check to see if ArraySet contains the value
+     */
+    public boolean contains(T item) {
+        for (int i = 0; i < size; i++) {
+            if (item.equals(items[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * return number of values
+     */
+    public int size() {
+        return size;
+    }
+
+    /**
+     * Returns an iterator (a.k.a. seer) over the elements in this set.
+     */
+    @Override
+    public Iterator<T> iterator() {
+        return new ArraySetIterator();
+    }
+
+    private class ArraySetIterator implements Iterator<T> {
+        private int curIdx;
+
+        public ArraySetIterator() {
+            curIdx = 0;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return curIdx < size;
+        }
+
+        @Override
+        public T next() {
+            T returnItem = items[curIdx];
+            curIdx++;
+            return returnItem;
+        }
+    }
+
+    public static void main(String[] args) {
+        /* Java Set example */
+        Set<String> javaset = new HashSet<>();
+        javaset.add("Tokyo");
+        javaset.add("Taiwan");
+
+//        for (String city : javaset) {
+//            System.out.println(city);
+//        }
+
+        Iterator<String> seer = javaset.iterator();
+        while (seer.hasNext()) {
+            String city = seer.next();
+            System.out.println(city);
+        }
+
+        /* ArraySet example */
+        ArraySet<String> aset = new ArraySet<>();
+//        s.add(null);
+        aset.add("horse");
+        aset.add("fish");
+        aset.add("cow");
+
+        for (String animal : aset) {
+            System.out.println(animal);
+        }
+    }
+
+}
+
+```
+
+See the Java library code: [openjdk github](https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/java/util/Collection.java)
+
+---
+
+## 6-4 Object Methods

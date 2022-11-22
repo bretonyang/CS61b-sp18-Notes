@@ -1,9 +1,10 @@
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 /* Naive implementation of ArraySet, where resizing is not
 * taken into account. */
-public class ArraySet<T> {
+public class ArraySet<T> implements Iterable<T> {
 
     private T[] items;
     private int size;
@@ -46,28 +47,67 @@ public class ArraySet<T> {
         return size;
     }
 
-    public static void main(String[] args) {
-        ArraySet<String> s = new ArraySet<>();
-//        s.add(null);
-        s.add("horse");
-        s.add("fish");
-        s.add("house");
-        s.add("fish");
-        System.out.println(s.contains("horse"));
-        System.out.println(s.size);
+    /**
+     * Returns an iterator (a.k.a. seer) over the elements in this set.
+     */
+    @Override
+    public Iterator<T> iterator() {
+        return new ArraySetIterator();
+    }
 
-        Set<String> s2 = new HashSet<>();
-        s2.add("Tokyo");
-        s2.add("Taiwan");
-        for (String city : s2) {
-            System.out.println(city);
+    private class ArraySetIterator implements Iterator<T> {
+        private int curIdx;
+
+        public ArraySetIterator() {
+            curIdx = 0;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return curIdx < size;
+        }
+
+        @Override
+        public T next() {
+            T returnItem = items[curIdx];
+            curIdx++;
+            return returnItem;
         }
     }
 
-    /* Also to do:
-    1. Make ArraySet implement the Iterable<T> interface.
-    2. Implement a toString method.
-    3. Implement an equals() method.
-    */
+    public static void main(String[] args) {
+        /* Java Set example */
+        Set<String> javaset = new HashSet<>();
+        javaset.add("Tokyo");
+        javaset.add("Taiwan");
+
+//        Iterator<String> seer = javaset.iterator();
+//        while (seer.hasNext()) {
+//            String city = seer.next();
+//            System.out.println(city);
+//        }
+
+        for (String city : javaset) {
+            System.out.println(city);
+        }
+
+        /* ArraySet example */
+        ArraySet<String> aset = new ArraySet<>();
+//        s.add(null);
+        aset.add("horse");
+        aset.add("fish");
+        aset.add("cow");
+        aset.add("cow");
+
+//        Iterator<String> seer = aset.iterator();
+//        while(seer.hasNext()) {
+//            String animal = seer.next();
+//            System.out.println(animal);
+//        }
+
+        for (String animal : aset) {
+            System.out.println(animal);
+        }
+    }
 
 }
