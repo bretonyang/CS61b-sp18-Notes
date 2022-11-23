@@ -28,6 +28,13 @@
     - [Enhanced For Loop](#enhanced-for-loop)
     - [Implementing Iterators](#implementing-iterators)
   - [6-4 Object Methods](#6-4-object-methods)
+    - [toString()](#tostring)
+    - [equals()](#equals)
+    - [Sidenote on how Java is written](#sidenote-on-how-java-is-written)
+    - [equals() with the new feature: instanceOf](#equals-with-the-new-feature-instanceof)
+    - [Creating better `toString()` method and `ArraySet.of()`](#creating-better-tostring-method-and-arraysetof)
+      - [Fancier `toString()`](#fancier-tostring)
+      - [Make our own `.of()` method](#make-our-own-of-method)
 
 ## 5-1 Autoboxing
 
@@ -1065,3 +1072,336 @@ See the Java library code: [openjdk github](https://github.com/openjdk/jdk/blob/
 ---
 
 ## 6-4 Object Methods
+
+All classes in Java inherit from the `Object` class. The methods that are inherited are as follows:
+
+- `String toString()`
+- `boolean equals(Object obj)`
+- `Class <?> getClass()`
+- `int hashCode()`
+- `protected Objectclone()`
+- `protected void finalize()`
+- `void notify()`
+- `void notifyAll()`
+- `void wait()`
+- `void wait(long timeout)`
+- `void wait(long timeout, int nanos)`
+
+See the `Object` class's original code here: [openjdk/Object.java](https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/java/lang/Object.java)
+
+The documentation also suggests that all subclasses when needed, should override the `toString()` and `equals()` method. So, now we'll focus on these 2 methods.
+
+### toString()
+
+The `toString()` method provides a string representation of an object. The `System.out.println()` function implicitly calls this method on whatever object is passed to it and prints the string returned. When you run `System.out.println(dog)`, it's actually doing this:
+
+```java
+System.out.println(dog.toString());
+```
+
+> Actually, [println](https://github.com/AdoptOpenJDK/openjdk-jdk11/blob/999dbd4192d0f819cb5224f26e9e7fa75ca6f289/src/java.base/share/classes/java/io/PrintStream.java#L896) calls [String.valueOf](https://github.com/AdoptOpenJDK/openjdk-jdk11/blob/f0ef2826d2116f4e0c0ed21f8d54fe9d0706504e/src/java.base/share/classes/java/lang/String.java#L2950) which calls `toString`
+
+The default `Object` class' `toString()` method prints the location of the object in memory. This is a hexidecimal string. Classes like `Arraylist` and java arrays have their own **overridden versions of `toString()`**. This is why, when you were working with and writing tests for Arraylist, errors would always return the list in a nice format like this (1, 2, 3, 4) instead of returning the memory location.
+
+For classes that we've written by ourselves like `ArrayDeque`, `LinkedListDeque`, etc, we need to provide our own `toString()` method if we want to be able to see the objects printed in a readable format.
+
+Let's try to write this method for an `ArraySet` class. Read the `ArraySet` class below and make sure you understand what the various methods do. Feel free to plug the code into java visualizer to get a better understanding!
+
+**Exercise 6.4.1**: Write the toString() method so that when we print an ArraySet, it prints the elements separated by commas inside of curly braces. i.e {1, 2, 3, 4}. Remember, the toString() method should return a string.
+
+**Naive Solution**
+
+```java
+@Override
+public String toString() {
+    String returnString = "{";
+    for (int i = 0; i < size; i += 1) {
+        returnString += keys[i];
+        returnString += ", ";
+    }
+    returnString += "}";
+    return returnString;
+}
+```
+
+> Note: In Java, everytime we try to add an object to a string, `toString` gets calles. so `returnString += keys[i]` is implicitly `returnString += keys[i].toString()`.
+
+> But what if `keys[i]` is a primitive?
+>
+> Then, the primitive is autoboxed to its wrapper type.
+
+This solution, although seemingly simple and elegant, is actually very naive. This is because **_when you use string concatenation in Java, you're also creating an entirely new string_**. For example: `returnString += keys[i];` you are actually not just appending to `returnString`, you are creating an entirely new string. This is incredibly inefficient because creating a new string object takes time too! Specifically, linear in the length of the string.
+
+**Bonus Question**: Let's say concatenating one character to a string takes 1 second. If we have an ArraySet of size 5: `{1, 2, 3, 4, 5}`, how long would it take to run the `toString()` method?
+
+**Answer**: We set `returnString` to the left bracket which takes one second because this involves adding `{` to the empty string `""`. Adding the first element will involve creating an entirely new string, adding `}` and `1` which would take 2 seconds. Adding the second element takes `3` seconds because we need to add `{`, `1`, `2`. This process continues, so for the entire array set the total time is 1 + 2 + 3 + 4 + 5 + 6 + 7 (omit the time to add `, `).
+
+> Question: Why would Java implement String to be immutable if it's so ineffective?
+>
+> Answer: We'll discuss more on immutable classes in the end of cs61b, basically it's a trade off between speed and simplicity.
+
+To remedy this, Java has a special class called `StringBuilder`. It **creates a string object that is mutable**, so you can continue appending to the same string object instead of creating a new one each time.
+
+**Exercise 6.4.2**: Rewrite the `toString()` method using `StringBuilder`.
+
+> Note: the `append()` method of a StringBuilder object can be **chained**, this is because the `append()` method returns `this`. See its code: [openjdk-StringBuilder](https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/java/lang/StringBuilder.java)
+
+**Solution**
+
+```java
+@Override
+public String toString() {
+    StringBuilder strB = new StringBuilder("{");
+    for (int i = 0; i < size - 1; i++) {
+        strB.append(items[i].toString()).append(", ");
+    }
+    strB.append(items[size - 1].toString()).append("}");
+    return strB.toString();
+}
+```
+
+Or even better (to account for empty set):
+
+```java
+@Override
+public String toString() {
+    StringBuilder strB = new StringBuilder("{");
+    for (int i = 0; i < size - 1; i++) {
+        strB.append(items[i].toString()).append(", ");
+    }
+    if (size != 0) {
+        strB.append(items[size - 1].toString());
+    }
+    strB.append("}");
+    return strB.toString();
+}
+```
+
+### equals()
+
+`equals()` and `==` have different behaviors in Java. `==` checks if two objects are actually the same object in memory. Remember, pass-by-value! `==` checks if two boxes hold the same thing. For primitives, this means checking if the values are equal. For objects, this means checking if the address/pointer is equal.
+
+Say we have this `Doge` class:
+
+```java
+public class Doge {
+
+   public int age;
+   public String name;
+
+   public Doge(int age, String name){
+      this.age = age;
+      this.name = name;
+   }
+
+   public static void main(String[] args) {
+      int x = 5;
+      int y = 5;
+      int z = 6;
+      Doge fido = new Doge(5, "Fido");
+      Doge doggo = new Doge(6, "Doggo");
+      Doge fidoTwin = new Doge(5, "Fido");
+      Doge fidoRealTwin = fido;
+   }
+
+}
+```
+
+If we plug this code into the java visualizer, we will see the box in pointer diagram shown below.
+
+![Doge](./note-img/Ch6/Doge.png)
+
+**Exercise 6.4.2**: What would java return if we ran the following?
+
+- `x == y`
+- `x == z`
+- `fido == doggo`
+- `fido == fidoTwin`
+- `fido == fidoRealTwin`
+
+**Answers**
+
+- `true`
+- `false`
+- `false`
+- `false`
+- `true`
+
+You can see how == can cause some problems in Java testing. When we write tests for our `ArrayList` and want to check if expected is the same as what is returned by our function, we create expected as a new arraylist. If we used `==` in our test, it would always return false. This is what `equals(Object o)` is for.
+
+`equals(Object o)` is a method in the `Object` that, by default, acts like `==` in that it checks if the memory address of the `this` is the same as `o`, i.e. `this == o`. However, **we can override it to define equality** in whichever way we wish! For example, for two Arraylists to be considered equal, they just need to have the same elements in the same order.
+
+> Sidenote: Use `Arrays.equals()` or `Arrays.deepEquals()` for arrays.
+
+**Exercise 6.4.3**: Let's write an `equals` method for the `ArraySet` class. Remember, **a set is an unordered collection of unique elements**. So, for two sets to be considered equal, you just need to check if they have the same elements.
+
+**Solution**
+
+```java
+public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (other == null) {
+            return false;
+        }
+        if (other.getClass() != this.getClass()) {
+            return false;
+        }
+        ArraySet<T> o = (ArraySet<T>) other;
+        if (o.size() != this.size()) {
+            return false;
+        }
+        for (T item : this) {
+            if (!o.contains(item)) {
+                return false;
+            }
+        }
+        return true;
+    }
+```
+
+We added a few checks in the beginning of the method to make sure our `equals` can handle **nulls** and **objects of a different class**. We also optimized the function by **return true right away if the == methods returns true**. This way, we avoid the extra work of iterating through the set.
+
+**Rules for Equals in Java**: When overriding a `.equals()` method, it may sometimes be trickier than it seems. A couple of rules to adhere to while implementing your `.equals()` method are as follows:
+
+1. `equals` must be an equivalence relation:
+
+   - **reflexive**: `x.equals(x)` is true
+   - **symmetric**: `x.equals(y)` if and only if `y.equals(x)`
+   - **transitive**: `x.equals(y)` and `y.equals(z)` implies `x.equals(z)`
+
+2. It **must take an `Object` argument**, **in order to override the original `.equals()` method**.
+
+3. It must be consistent if `x.equals(y)`, then as long as x and y remain unchanged: x must continue to equal y
+
+4. It is never true for null, i.e., `x.equals(null)` must be false (except when `x == null`).
+
+### Sidenote on how Java is written
+
+See the [stackoverflow-question](https://stackoverflow.com/questions/1220914/in-which-language-are-the-java-compiler-and-jvm-written).
+
+- The Java libraries (`java.lang`, `java.util` etc, often referred to as the Java API) are themselves written in Java, although methods marked as `native` will have been written in **C** or **C++**.
+
+The very first Java compiler was developed by Sun Microsystems and was written in C using some libraries from C++. Today, the Java compiler is written in Java, while the JRE is written in C.
+
+We can imagine how the Java compiler was written in Java like this:
+
+The Java compiler is written as a Java program and then compiled with the Java compiler written in C(the first Java compiler). Thus we can use the newly compiled Java compiler(written in Java) to compile Java programs.
+
+### equals() with the new feature: instanceOf
+
+![instanceOf](./note-img/Ch6/instanceOf.PNG)
+
+Basically, the line `o instanceOf Dog uddaDog` does two things:
+
+1. Checks if `o`'s dynamic type if `Dog` (or its subclasses).
+2. Casts `o` into a variable of static type `Dog` called `uddaDog`.
+
+It kind of does the following lines (the old way) all in one line:
+
+```java
+if (o == null) {
+    return false;
+}
+if (o.getClass() != this.getClass()) {
+    return false;
+}
+Dog uddaDog = (Dog) o;
+```
+
+![](./note-img/Ch6/new-equals.PNG)
+
+Note that intellij yells at us for using a raw use of parameterized ArraySet class in the line `o instanceof ArraySet otherAset`, but that's just how we're going to do in this class (other fixed are too complex generics topics).
+
+Our code:
+
+```java
+@Override
+public boolean equals(Object o) {
+    if (o == this) {
+        return true;
+    }
+    if (o instanceof ArraySet otherAset) {
+        if (otherAset.size() != this.size()) {
+            return false;
+        }
+        for (T item : this) {
+            if (!otherAset.contains(item)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
+}
+```
+
+![](./note-img/Ch6/historical-equals.PNG)
+
+### Creating better `toString()` method and `ArraySet.of()`
+
+#### Fancier `toString()`
+
+We can use the `String.join()` method, which has the signature `join(CharSequence delimiter, Iterable<? extends CharSequence> elements)`.
+
+Notice that `String.join()`'s second parameter needs to be an Iterable which has the type parameter String (which extends CharSequence), so we'll need to first put our items in the ArraySet into some Iterable with String type parameter, e.g. `List<String>`.
+
+Code:
+
+```java
+@Override
+public String toString() {
+    List<String> listOfItems = new ArrayList<>();
+    for (T item : this) {
+        listOfItems.add(item.toString());
+    }
+    return "{" + String.join(", ", listOfItems) + "}";
+}
+```
+
+Note that the line `"{" + String.join(", ", listOfItems) + "}"` actually copies the string twice, which might slow down the program. However, it's not that much a big difference from the other solution, plus this code is cleaner and more readable, so, a it's still an acceptable trade off.
+
+#### Make our own `.of()` method
+
+To create the `.of()` method, we'll use the **variable arguments (varargs)**.
+
+Example: `public void fun(int... a)`
+
+The `...` syntax tells the compiler that varargs have been used, and these arguments should be stored in the array referred to by `a`.
+
+Let's define our `of` method: `public static ArraySet<T> of(T... )`. However, there's a problem when working with generic types in a `static` method, which is that **`static` methods do NOT know what the generic type parameter `T` is**.
+
+So, instead we need to make **a generic method**, and change our method signature into:
+
+```java
+public static <E> ArraySet<E> of(E... elements)
+```
+
+The `<E>` before `ArraySet<E>` is the method's type parameter, and `ArraySet<E>` is the return type of this method.
+
+> Note: we use `E` for the method's own type parameter to not confuse with `T`, the type parameter of `ArraySet`, since they're completely NOT related at all (remember, `static` methods NEVER have access to `T`, the type parameter of the class).
+
+The entire code:
+
+```java
+public static <E> ArraySet<E> of(E... elements) {
+    ArraySet<E> returnSet = new ArraySet<>();
+    for (E el : elements) {
+        returnSet.add(el);
+    }
+    return returnSet;
+}
+```
+
+We can call it like this:
+
+```java
+ArraySet<Integer> asetOfInts = ArraySet.<Integer>of(1, 2, 3);
+```
+
+Or in this case we can simplify it to:
+
+```java
+ArraySet<Integer> asetOfInts = ArraySet.of(1, 2, 3);
+```

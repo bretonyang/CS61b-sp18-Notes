@@ -1,6 +1,6 @@
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Set;
+import java.util.List;
 
 /* Naive implementation of ArraySet, where resizing is not
 * taken into account. */
@@ -19,7 +19,7 @@ public class ArraySet<T> implements Iterable<T> {
      */
     public void add(T item) {
         if (item == null) {
-            throw new IllegalArgumentException("Can't add null to an ArraySet");
+            throw new IllegalArgumentException("Can't add null");
         }
         if (contains(item)) {
             return;
@@ -75,39 +75,82 @@ public class ArraySet<T> implements Iterable<T> {
         }
     }
 
+//    @Override
+//    public String toString() {
+//        StringBuilder strB = new StringBuilder("{");
+//        for (int i = 0; i < size - 1; i++) {
+//            strB.append(items[i].toString()).append(", ");
+//        }
+//        if (size != 0) {
+//            strB.append(items[size - 1].toString());
+//        }
+//        strB.append("}");
+//        return strB.toString();
+//    }
+
+    @Override
+    public String toString() {
+        List<String> listOfItems = new ArrayList<>();
+        for (T item : this) {
+            listOfItems.add(item.toString());
+        }
+        return "{" + String.join(", ", listOfItems) + "}";
+    }
+
+    public static <E> ArraySet<E> of(E... elements) {
+        ArraySet<E> returnSet = new ArraySet<>();
+        for (E el : elements) {
+            returnSet.add(el);
+        }
+        return returnSet;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+        if (o instanceof ArraySet otherAset) {
+            if (otherAset.size() != this.size()) {
+                return false;
+            }
+            for (T item : this) {
+                if (!otherAset.contains(item)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
     public static void main(String[] args) {
-        /* Java Set example */
-        Set<String> javaset = new HashSet<>();
-        javaset.add("Tokyo");
-        javaset.add("Taiwan");
-
-//        Iterator<String> seer = javaset.iterator();
-//        while (seer.hasNext()) {
-//            String city = seer.next();
-//            System.out.println(city);
-//        }
-
-        for (String city : javaset) {
-            System.out.println(city);
-        }
-
         /* ArraySet example */
-        ArraySet<String> aset = new ArraySet<>();
-//        s.add(null);
-        aset.add("horse");
-        aset.add("fish");
-        aset.add("cow");
-        aset.add("cow");
+        ArraySet<Integer> aset = new ArraySet<>();
+        aset.add(1);
+        aset.add(2);
+        aset.add(3);
 
-//        Iterator<String> seer = aset.iterator();
-//        while(seer.hasNext()) {
-//            String animal = seer.next();
-//            System.out.println(animal);
-//        }
-
-        for (String animal : aset) {
-            System.out.println(animal);
+        // iteration
+        for (int num : aset) {
+            System.out.println(num);
         }
+
+        // toString
+        System.out.println(aset); // ArraySet@5f184fc6
+
+        // equals
+        ArraySet<Integer> aset2 = ArraySet.of(1, 2, 3);
+        ArraySet<Integer> aset3 = ArraySet.of(1, 2);
+        ArraySet<Integer> aset4 = aset;
+        System.out.println(aset.equals(aset2));
+        System.out.println(aset.equals(null));
+        System.out.println(aset.equals(aset3));
+        System.out.println(aset.equals(aset4));
+
+        // .of() method
+        ArraySet<Integer> asetOfInts = ArraySet.<Integer>of(1, 2, 3);
+        System.out.println(asetOfInts);
     }
 
 }
