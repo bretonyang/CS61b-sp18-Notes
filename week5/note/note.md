@@ -35,6 +35,12 @@
     - [Creating better `toString()` method and `ArraySet.of()`](#creating-better-tostring-method-and-arraysetof)
       - [Fancier `toString()`](#fancier-tostring)
       - [Make our own `.of()` method](#make-our-own-of-method)
+  - [(Legacy) 6-2 Throwing Exceptions](#legacy-6-2-throwing-exceptions)
+    - [Catching Exceptions](#catching-exceptions)
+    - [The Philosophy of Exceptions](#the-philosophy-of-exceptions)
+    - [Uncaught Exceptions](#uncaught-exceptions)
+  - [(Legacy) 6-3 Checked vs Unchecked Exceptions](#legacy-6-3-checked-vs-unchecked-exceptions)
+  - [(Legacy) 6-4 Iteration of ArrayMap](#legacy-6-4-iteration-of-arraymap)
 
 ## 5-1 Autoboxing
 
@@ -1404,4 +1410,590 @@ Or in this case we can simplify it to:
 
 ```java
 ArraySet<Integer> asetOfInts = ArraySet.of(1, 2, 3);
+```
+
+---
+
+## (Legacy) 6-2 Throwing Exceptions
+
+Consider the following `main` method inside the `ArrayMap` class we implemented a few chapters before.
+
+```java
+public static void main (String[] args) {
+    ArrayMap<String, Integer> am = new ArrayMap<String, Integer>();
+    am.put("hello", 5);
+    System.out.println(am.get("yolp"));
+}
+```
+
+What happens when we run this? The program attempts to access a key which doesn’t exist, and crashes! This results in the following error message:
+
+```
+$ java ExceptionDemo
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: -1
+at ArrayMap.get(ArrayMap.java:38)
+at ExceptionDemo.main(ExceptionDemo.java:6)
+```
+
+This is an **implicit** exception, an error thrown by Java itself. We can learn a little bit from this message: we see that the program crashed because of an `ArrayIndexOutOfBoundsException`; but it doesn’t tell us very much besides that. You may have encountered similarly unhelpful error messages during your own programming endeavors. So how can we be more helpful to the user of our program?
+
+We can throw our own exceptions, using the `throw` keyword. This lets us provide our own error messages which may be more informative to the user. We can also provide information to error-handling code within our program. This is an **explicit** exception because we purposefully threw it as the programmer.
+
+In the case above, we might implement get with a check for a missing key, that throws a more informative exception:
+
+```java
+public V get(K key) {
+    int location = findKey(key);
+    if(location < 0) {
+        throw new IllegalArgumentException("Key " + key + " does not exist in map."\);
+    }
+    return values[location];
+}
+```
+
+Now, instead of `java.lang.ArrayIndexOutOfBoundsException: -1`, we see:
+
+```
+$java ExceptionDemo
+Exception in thread "main" java.lang.IllegalArgumentException: Key yolp does not exist in map.
+at ArrayMap.get(ArrayMap.java:40)
+at ExceptionDemo.main(ExceptionDemo.java:6)
+```
+
+### Catching Exceptions
+
+So far, we've seen Java crash and print error messages with implicit exceptions:
+
+```java
+Object o = "mulchor";
+Planet x = (Planet) o;
+```
+
+resulting in:
+
+```
+Exception in thread "main" java.lang.ClassCastException:
+java.lang.String cannot be cast to Planet
+```
+
+And above, we saw how to provide more informative errors by using explicit exceptions:
+
+```java
+public static void main(String[] args) {
+    System.out.println("ayyy lmao");
+    throw new RuntimeException("For no reason.");
+}
+```
+
+which produces the error:
+
+```
+$ java Alien
+ayyy lmao
+Exception in thread "main" java.lang.RuntimeException: For no reason.
+at Alien.main(Alien.java:4)
+```
+
+Note a familiar construction: `new RuntimeException("For no reason.")`. This looks a lot like instantiating a class -- because that's exactly what it is. A `RuntimeException` is just a Java `Object`, like any other.
+
+![Exceptions](./note-img/Ch6-Legacy/exceptions.png)
+
+So far, thrown exceptions cause code to crash. But we can "catch" exceptions instead, preventing the program from crashing. The keywords `try` and `catch` break the normal flow of the program, protecting it from exceptions.
+
+Consider the following example:
+
+```java
+Dog d = new Dog("Lucy", "Retriever", 80);
+d.becomeAngry();
+
+try {
+    d.receivePat();
+} catch (Exception e) {
+    System.out.println("Tried to pat: " + e);
+}
+System.out.println(d);
+```
+
+The output might be:
+
+```
+$ java ExceptionDemo
+Tried to pat: java.lang.RuntimeException: grrr... snarl snarl
+Lucy is a displeased Retriever weighing 80.0 standard lb units.
+```
+
+Here we see that when we try and pat the dog when the dog is angry, it throws a `RuntimeException`, with the helpful error message "grrr...snarl snarl." But, it does continue on, and print out the state of the dog in the final line! This is because we caught the exception.
+
+This might not seem particularly useful yet. But we can also use a `catch` statement to take corrective action.
+
+```java
+Dog d = new Dog("Lucy", "Retriever", 80);
+d.becomeAngry();
+
+try {
+    d.receivePat();
+} catch (Exception e) {
+    System.out.println("Tried to pat: " + e);
+    d.eatTreat("banana");
+}
+d.receivePat();
+System.out.println(d);
+```
+
+In this version of our code, we soothe the dog with a treat. Now when we try and pat it again, the method executes without failing.
+
+```
+$ java ExceptionDemo
+Tried to pat: java.lang.RuntimeException: grrr... snarl snarl
+Lucy munches the banana
+
+Lucy enjoys the pat.
+
+Lucy is a happy Retriever weighing 80.0 standard lb units.
+```
+
+**In the real world**, this corrective action might be extending an antenna on a robot when an exception is thrown by an operation expecting a ready antenna. Or perhaps we simply want to write the error to a log file for later analysis.
+
+### The Philosophy of Exceptions
+
+Exceptions aren't the only way to do error handling. But they do have some advantages. Most importantly, they **keep error handling conceptually separate from the rest of the program**.
+
+Let's consider some psuedocode for a program that reads from a file:
+
+```
+func readFile: {
+    open the file;
+    determine its size;
+    allocate that much memory;
+    read the file into memory;
+    close the file;
+}
+```
+
+A lot of things might go wrong here: maybe the file doesn't exist, maybe there isn't enough memory, or the reading fails.
+
+Without exceptions, we might handle the errors like this:
+
+```
+func readFile: {
+    open the file;
+    if (theFileIsOpen) {
+        determine its size;
+        if (gotTheFileLength) {
+            allocate that much memory;
+        } else {
+            return error("fileLengthError");
+        }
+            if (gotEnoughMemory) {
+                read the file into memory;
+            if (readFailed) {
+                return error("readError");
+            }
+        ...
+        } else {
+            return error("memoryError");
+        }
+    } else {
+        return error("fileOpenError")
+    }
+}
+```
+
+But this is super messy! And deeply frustrating to read.
+
+With exceptions, we might rewrite this as:
+
+```
+func readFile: {
+    try {
+        open the file;
+        determine its size;
+        allocate that much memory;
+        read the file into memory;
+        close the file;
+    } catch (fileOpenFailed) {
+        doSomething;
+    } catch (sizeDeterminationFailed) {
+        doSomething;
+    } catch (memoryAllocationFailed) {
+        doSomething;
+    } catch (readFailed) {
+        doSomething;
+    } catch (fileCloseFailed) {
+        doSomething;
+    }
+}
+```
+
+Here, we first do all the things associated with reading our file, and wrap them in a try statement. Then, **if an error happens anywhere in that sequence of operations, it will get caught by the appropriate catch statement**. We can provide distinct behaviors for each type of exception.
+
+The key benefit of the exceptions version, in contrast to the naive version above, is that the code flows in a clean narrative. **First, try to do the desired operations. Then, catch any errors**. Good code feels like a story; it has a certain beauty to its construction. That clarity makes it easier to both write and maintain over time.
+
+### Uncaught Exceptions
+
+When an exception is thrown, it descends the call stack.
+
+![callstack-exceptions](./note-img/Ch6-Legacy/callstack.png)
+
+If the `peek()` method does not explicitly `catch` the exception, the exception will propagate to the calling function, `sample()`. We can think of this as popping the current method off the stack, and moving to the next method below it. If `sample()` also fails to `catch` the exception, it moves to `main()`.
+
+**If the exception reaches the bottom of the stack without being caught, the program crashes** and Java provides a message for the user, printing out the stack trace. Ideally the user is a programmer with the power to do something about it.
+
+```
+java.lang.RuntimeException in thread “main”:
+at ArrayRingBuffer.peek:63
+at GuitarString.sample:48
+at GuitarHeroLite.java:110
+```
+
+We can see by looking at the stack trace where the error occurred: on line 63 of `ArrayRingBuffer.peek()`, after being called by line 48 of `GuitarString.sample()`, after being called by the `main` method of `GuitarHeroLite.java` on line 110. But this isn't super helpful unless the user also happens to be a programmer with the power to do something about the error.
+
+---
+
+## (Legacy) 6-3 Checked vs Unchecked Exceptions
+
+The exceptions we've seen above have all occurred at runtime. Occasionally, you’ll find that your code won’t even compile, for the mysterious reason that an exception “must be caught or declared to be thrown”.
+
+What's going on in that case? The basic idea is that some exceptions are considered so disgusting by the compiler that you MUST handle them somehow.
+
+We call these **"checked" exceptions**. (You might think of that as shorthand for "must be checked" exceptions.)
+
+Let's consider this example:
+
+```java
+public static void main(String[] args) {
+    Eagle.gulgate();
+}
+```
+
+It looks reasonable enough. But when we attempt to compile, we receive this error:
+
+```
+$ javac What.java
+What.java:2: error: unreported exception IOException; must be caught or declared to be thrown
+Eagle.gulgate();
+^
+```
+
+We can't compile, because of an "unreported IOException." Let's look a little deeper into the Eagle class:
+
+```java
+public class Eagle {
+    public static void gulgate() {
+        if (today == “Thursday”) {
+            throw new IOException("hi"); }
+        }
+    }
+```
+
+On Thursdays, the `gulgate()` method is programmed to throw an `IOException`. If we try and compile `Eagle.java`, we receive a similar error to the one we saw when compiling the calling class above:
+
+```
+$ javac Eagle
+Eagle.java:4: error: unreported exception IOException; must be caught or declared to be thrown
+throw new IOException("hi"); }
+^
+```
+
+It's clear that Java isn't happy about this `IOException`. This is because `IOExceptions` are **"checked' exceptions** and **must be handled accordingly**. We will go over how this handling occurs a bit later in the chapter. But what if we threw a `RuntimeException` instead, like we did in previous sections?
+
+```java
+public class UncheckedExceptionDemo {
+    public static void main(String[] args) {
+        if (today == “Thursday”) {
+            throw new RuntimeException("as a joke");
+        }
+    }
+}
+```
+
+`RuntimeException`s are considered **"unchecked" exceptions**, and do not have the same requirements as the checked exceptions. The code above will compile just fine -- though it will crash at runtime on Thursdays:
+
+```
+$ javac UncheckedExceptionDemo.java
+$ java UncheckedExceptionDemo
+Exception in thread "main" java.lang.RuntimeException: as a joke.
+at UncheckedExceptionDemo.main(UncheckedExceptionDemo.java:3)
+```
+
+How do we know which types of exceptions are checked, and which are unchecked?
+
+![Checked Exceptions](./note-img/Ch6-Legacy/checked_exceptions.png)
+
+**Errors and RuntimeExceptions, and all their children, are unchecked**. These are errors that **cannot be known until runtime**. They also tend to be **ones that can't be recovered from** -- what can you do to fix it if the code tries to get the -1 element from an array? Not much.
+
+**Everything else is a checked exception**. Most of these have productive fixes. For instance, if we run into a `FileNotFound Exception`, perhaps we can ask the user to re-specify the file they want -- they might have mistyped it.
+
+Since Java is on your side, and wants to do its best to make sure that every program runs without crashing, it will not let a program with a possible fixable error compile unless it is indeed handled in some way.
+
+There are two ways to handle a checked error:
+
+1. Catch
+2. Specify
+
+Using a `catch` block is what we have seen above. In our `gulgate()` method, it might look like this:
+
+```java
+public static void gulgate() {
+    try {
+        if (today == “Thursday”) {
+            throw new IOException("hi");
+        }
+    } catch (Exception e) {
+        System.out.println("psych!");
+    }
+}
+```
+
+If we don't want to handle the exception in the `gulgate()` method, we can instead "defer the responsibility to somewhere else". We mark, or **specify the method as dangerous** by modifying the method definition as follows:
+
+```java
+public static void gulgate() throws IOException {
+... throw new IOException("hi"); ...
+}
+```
+
+But specifying the exception does not yet handle it. When we call `gulgate()` from somewhere else, that new method now becomes dangerous as well!
+
+Since `gulgate()` might throw an uncaught exception, now `main()` can also throw that exception, and the following code won't compile:
+
+```java
+public static void main(String[] args) {
+    Eagle.gulgate();
+}
+```
+
+We can solve this in one of two ways: catch, or specify in the calling method.
+
+Catch:
+
+```java
+public static void main(String[] args) {
+    try {
+        gulgate();
+    } catch (IOException e) {
+        System.out.println("Averted");
+    }
+}
+```
+
+Specify:
+
+```java
+public static void main(String[] args) throws IOException {
+    gulgate();
+}
+```
+
+Basically, for "checked" exceptions, the compiler make sure that the exception must be "checked", i.e., the exception has NO way of delegeting to other methods, and is handled correctly inside where it is thrown. Thus, we must either "catch" or "specify" the exception.
+
+- **Catch** the error when you can handle the problem there. Keep it from escaping!
+
+- **Specify** the error when someone else should handle the error. Make sure the caller knows the method is dangerous!
+
+> Sidenote: we can use the `.getMessage()` method of the Exception object to get the exception message:
+
+```java
+import java.io.IOException;
+
+public class ExceptionsDemo {
+    public static void main(String[] args) {
+        try {
+            int today = 4;
+            if (today == 4) {
+                throw new IOException("for no reason :)");
+            }
+        } catch (Exception e) {
+            System.out.println("error: " + e.getMessage());
+            // error: for no reason :)
+        }
+    }
+}
+```
+
+Another sidenote:
+
+Many I/O API methods specifies `throws SomeException` in their signature, so that we, as the user, knows that there might be an exception, and we always need to handle that exception by either catching it or specifiying it in our method.
+
+---
+
+## (Legacy) 6-4 Iteration of ArrayMap
+
+Note: To instantiate a nested class that's NOT `static`, we'll need to use the weird syntax `ParentClass.new NestedClass();`
+
+Final Code:
+
+```java
+package map61b;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+public class ArrayMap<K, V> implements Map61B<K, V>, Iterable<K> {
+
+    private K[] keys;
+    private V[] values;
+    int size;
+
+    public ArrayMap() {
+        keys = (K[]) new Object[100];
+        values = (V[]) new Object[100];
+        size = 0;
+    }
+
+    @Override
+    public Iterator<K> iterator() {
+        return new KeyIterator();
+    }
+
+    private class KeyIterator implements Iterator<K> {
+        private int curIndex;
+
+        public KeyIterator() {
+            curIndex = 0;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return curIndex < size;
+        }
+
+        @Override
+        public K next() {
+            K returnKey = keys[curIndex];
+            curIndex++;
+            return returnKey;
+        }
+    }
+
+    /**
+     * Returns true if this map contains a mapping for the specified key.
+     */
+    @Override
+    public boolean containsKey(K key) {
+        return keyIndex(key) > -1;
+    }
+
+    /**
+     * Returns the value to which the specified key is mapped.
+     */
+    @Override
+    public V get(K key) {
+        int index = keyIndex(key);
+        if (index == -1) {
+            return null;
+        }
+        return values[index];
+    }
+
+    /**
+     * Returns the number of key-value mappings in this map.
+     */
+    @Override
+    public int size() {
+        return size;
+    }
+
+    /**
+     * Associates the specified value with the specified key in this map.
+     */
+    @Override
+    public void put(K key, V value) {
+        int idx = keyIndex(key);
+        if (idx == -1) {
+            // new key-value pair
+            keys[size] = key;
+            values[size] = value;
+            size++;
+        } else {
+            values[idx] = value;
+        }
+    }
+
+    /**
+     * Returns a list of the keys in this map.
+     */
+    @Override
+    public List<K> keys() {
+        List<K> keyList = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            keyList.add(keys[i]);
+        }
+        return keyList;
+    }
+
+    /**
+     * Returns the index of the key, if it exists. Otherwise returns -1.
+     */
+    private int keyIndex(K key) {
+        for (int i = 0; i < size; i++) {
+            if (keys[i].equals(key)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+}
+```
+
+```java
+import map61b.ArrayMap;
+import java.util.Iterator;
+
+public class IterationDemo {
+    public static void main(String[] args) {
+        ArrayMap<String, Integer> aMap = new ArrayMap<>();
+
+        aMap.put("Breton", 105);
+        aMap.put("Alex", 85);
+        aMap.put("Eric", 70);
+
+        // behind the scenes of enhanced for-loop
+        Iterator<String> seer = aMap.iterator();
+        while (seer.hasNext()) {
+            System.out.println(seer.next());
+        }
+
+        // enhanced for-loop
+        for (String s : aMap) {
+            System.out.println(s);
+        }
+    }
+}
+```
+
+```java
+package map61b;
+
+import java.util.List;
+
+public interface Map61B<K, V> {
+    /**
+     * Returns true if this map contains a mapping for the specified key.
+     */
+    boolean containsKey(K key);
+
+    /**
+     * Returns the value to which the specified key is mapped. No defined
+     * behavior if the key doesn't exist (ok to crash).
+     */
+    V get(K key);
+
+    /**
+     * Returns the number of key-value mappings in this map.
+     */
+    int size();
+
+    /**
+     * Associates the specified value with the specified key in this map.
+     */
+    void put(K key, V value);
+
+    /**
+     * Returns a list of the keys in this map.
+     */
+    List<K> keys();
+}
 ```
