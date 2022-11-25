@@ -15,6 +15,8 @@
     - [Access Control Subtleties](#access-control-subtleties)
     - [Access Control at the Top Level](#access-control-at-the-top-level)
     - [Summary to access control](#summary-to-access-control)
+  - [HW1](#hw1)
+    - [When to use an Interface Versus an Abstract Class](#when-to-use-an-interface-versus-an-abstract-class)
 
 ## 7-1 Packages
 
@@ -290,3 +292,17 @@ Determines who can see the existence of the class: the entire world or just memb
 ### Summary to access control
 
 ![summary](./note-img/Ch7/summary.PNG)
+
+---
+
+## HW1
+
+### When to use an Interface Versus an Abstract Class
+
+In practice, in can be a little unclear when to use an interface and when to use an abstract class. One mostly accurate metaphor that might help is that you can think of an `interface` as defining a “can-do” or an **“is-a”** relationship, whereas an `abstract class` should be a **stricter “is-a”** relationship. The difference can be subtle, and you can often use one instead of the other.
+
+In practice, large Java libraries often have a hierarchy of interfaces, which are extended by abstract classes that provided default implementations for some methods, and which are in turn ultimately implemented by concrete classes. A good example is the `Collection` interface: It extends `Iterable` (which is its superinterface), and is implemented by many subinterfaces (i.e. `List`, `Set`, `Map`), which in turn have their own abstract implementations (`AbstractList`, `AbstractSet` `AbstractMap`).
+
+However, for smaller programs, the hierarchy is often stubbier, sometimes starting with an abstract class. For example, we could have just started with `AbstractBoundedQueue` at the top of the hierarchy and skipped having a `BoundedQueue` interface altogether.
+
+---
