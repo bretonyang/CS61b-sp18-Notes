@@ -1,6 +1,6 @@
-# Week 5
+# Ch.5 Generics and Autoboxing
 
-- [Week 5](#week-5)
+- [Ch.5 Generics and Autoboxing](#ch5-generics-and-autoboxing)
   - [5-1 Autoboxing](#5-1-autoboxing)
     - [Autoboxing and Unboxing](#autoboxing-and-unboxing)
     - [Caveats](#caveats)
@@ -16,6 +16,7 @@
       - [Notes on Bounded Type Parameters](#notes-on-bounded-type-parameters)
     - [Summary](#summary)
     - [More syntax on generics](#more-syntax-on-generics)
+- [Ch.6 Exceptions, Iterators, Iterables, and Object methods](#ch6-exceptions-iterators-iterables-and-object-methods)
   - [6-1 Lists, Sets, and ArraySet](#6-1-lists-sets-and-arrayset)
     - [Lists in Real Java Code](#lists-in-real-java-code)
     - [Sets](#sets)
@@ -35,6 +36,7 @@
     - [Creating better `toString()` method and `ArraySet.of()`](#creating-better-tostring-method-and-arraysetof)
       - [Fancier `toString()`](#fancier-tostring)
       - [Make our own `.of()` method](#make-our-own-of-method)
+- [Ch.6 Legacy](#ch6-legacy)
   - [(Legacy) 6-2 Throwing Exceptions](#legacy-6-2-throwing-exceptions)
     - [Catching Exceptions](#catching-exceptions)
     - [The Philosophy of Exceptions](#the-philosophy-of-exceptions)
@@ -579,6 +581,8 @@ Yes, there's even more syntax that's not covered by CS61b, so here they are:
 Or just study the whole oracle java tutorial on generics: [Generics](https://docs.oracle.com/javase/tutorial/java/generics/index.html)
 
 ---
+
+# Ch.6 Exceptions, Iterators, Iterables, and Object methods
 
 ## 6-1 Lists, Sets, and ArraySet
 
@@ -1413,6 +1417,8 @@ ArraySet<Integer> asetOfInts = ArraySet.of(1, 2, 3);
 ```
 
 ---
+
+# Ch.6 Legacy
 
 ## (Legacy) 6-2 Throwing Exceptions
 

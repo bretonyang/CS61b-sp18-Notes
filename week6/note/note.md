@@ -1,6 +1,6 @@
-# Week 6
+# Ch.7 Packages and Access Control
 
-- [Week 6](#week-6)
+- [Ch.7 Packages and Access Control](#ch7-packages-and-access-control)
   - [7-1 Packages](#7-1-packages)
     - [Why do we use reverse name for package names](#why-do-we-use-reverse-name-for-package-names)
     - [Intro](#intro)
@@ -15,7 +15,7 @@
     - [Access Control Subtleties](#access-control-subtleties)
     - [Access Control at the Top Level](#access-control-at-the-top-level)
     - [Summary to access control](#summary-to-access-control)
-  - [HW1](#hw1)
+- [HW1 Note](#hw1-note)
     - [When to use an Interface Versus an Abstract Class](#when-to-use-an-interface-versus-an-abstract-class)
 
 ## 7-1 Packages
@@ -295,7 +295,7 @@ Determines who can see the existence of the class: the entire world or just memb
 
 ---
 
-## HW1
+# HW1 Note
 
 ### When to use an Interface Versus an Abstract Class
 
