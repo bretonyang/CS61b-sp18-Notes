@@ -2,7 +2,7 @@
 
 Notes, textbook exercises, and lecture exercises of CS61b Data Structures, Spring 2018.
 
-Progress: week 6 (2022/11/24).
+Progress: week 7 (2022/11/24).
 
 Finished Labs: 1 ~ 5.
 
