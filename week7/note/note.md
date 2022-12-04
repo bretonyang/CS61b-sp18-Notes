@@ -1,5 +1,3 @@
-# Ch.8 Efficient Programming
-
 - [Ch.8 Efficient Programming](#ch8-efficient-programming)
   - [8-1 Encapsulation](#8-1-encapsulation)
     - [Encapsulation](#encapsulation)
@@ -11,6 +9,29 @@
   - [8-2 Asymptotics I: An Introduction to Asymptotic Analysis](#8-2-asymptotics-i-an-introduction-to-asymptotic-analysis)
     - [Example of Algorithm Cost](#example-of-algorithm-cost)
     - [Runtime Characterization](#runtime-characterization)
+    - [Techniques for Measuring Computational Cost](#techniques-for-measuring-computational-cost)
+    - [Checkpoint](#checkpoint)
+    - [Why scaling matters](#why-scaling-matters)
+    - [Asymptotic Behavior](#asymptotic-behavior)
+      - [Parabolas vs. Lines](#parabolas-vs-lines)
+    - [Returning to Duplicate Finding](#returning-to-duplicate-finding)
+    - [Intuitive Simplification 1: Consider only the Worst Case](#intuitive-simplification-1-consider-only-the-worst-case)
+    - [Intuitive Simplification 2: Restrict Attention to One Operation](#intuitive-simplification-2-restrict-attention-to-one-operation)
+    - [Intuitive Simplification 3: Eliminate Low Order Terms](#intuitive-simplification-3-eliminate-low-order-terms)
+    - [Intuitive Simplification 4: Eliminate Multiplicative Constants](#intuitive-simplification-4-eliminate-multiplicative-constants)
+    - [Simplification Summary](#simplification-summary)
+    - [Summary of our (Painful) Analysis Process](#summary-of-our-painful-analysis-process)
+    - [Simplified Analysis Process](#simplified-analysis-process)
+      - [Analysis of Nested For Loops: Exact Count](#analysis-of-nested-for-loops-exact-count)
+      - [Analysis of Nested For Loops: Geometric Argument](#analysis-of-nested-for-loops-geometric-argument)
+    - [Formalizing Order of Growth](#formalizing-order-of-growth)
+  - [Definitions](#definitions)
+    - [Big-Theta](#big-theta)
+      - [Summary](#summary)
+    - [Big-O](#big-o)
+  - [8-3 Asymptotics II](#8-3-asymptotics-ii)
+
+# Ch.8 Efficient Programming
 
 ## 8-1 Encapsulation
 
@@ -194,3 +215,359 @@ Objective: Determine if a _sorted_ array contains any duplicates.
 We can see that the Silly algorithm seems like it’s doing a lot more unnecessary, redundant work than the Better algorithm. But how much more work? How do we actually quantify or determine how efficient a program is? This chapter will provide you the formal techniques and tools to compare the efficiency of various algorithms!
 
 ### Runtime Characterization
+
+To investigate these techniques, we will be characterizing the runtime of the following two functions, dup1 and dup2. These are the two different ways of finding duplicates we discussed above.
+
+Things to keep in mind about our characterizations:
+
+- They should be simple and mathematically rigorous.
+- They should also clearly demonstrate the superiority of dup2 over dup1.
+
+```java
+//Silly Duplicate: compare everything
+public static boolean dup1(int[] A) {
+  for (int i = 0; i < A.length; i++) {
+    for (int j = i + 1; j < A.length; j++) {
+      if (A[i] == A[j]) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+//Better Duplicate: compare only neighbors
+public static boolean dup2(int[] A) {
+  for (int i = 0; i < A.length - 1; i++) {
+    if (A[i] == A[i + 1]) {
+      return true;
+    }
+  }
+  return false;
+}
+```
+
+### Techniques for Measuring Computational Cost
+
+**Technique 1**: Measure execution time in seconds using a client program (i.e. actually seeing how quick our program runs in physical seconds)
+
+_Procedure_:
+
+- Use a physical stopwatch
+- Or, Unix has a built in `time` command that measures execution time.
+- Or, Princeton Standard library has a `stopwatch` class
+
+_Observations_:
+
+- As our input size increases, we can see that `dup1` takes a longer time to complete, whereas `dup2` completes at relatively around the same rate.
+
+_Pros vs. Cons_:
+
+- Pros: Very easy to measure (just run a stopwatch). Meaning is clear (look at the actual length of time it takes to complete).
+- Cons: May take a lot of time to test. Results may also differ based on what kind of machine, compiler, input data, etc. you’re running your program with.
+
+So how does this method match our goals? It's simple, so that's good, but not mathematically rigorous. Moreover, the differences based on machine, compiler, input, etc. mean that the results may not clearly demonstrate the relationship between dup1 and dup2.
+
+![tech-1](note-img/Ch8/tech-1.PNG)
+
+**Technique 2A**: Count possible operations for an array of size N = 10,000.
+
+_Procedure_:
+
+- Look at your code and the various operations that it uses (i.e. assignments, incrementations, etc.)
+- Count the number of times each operation is performed.
+
+_Observations_:
+
+- Some counts get tricky to count.
+- How did we get some of these numbers? It can be complicated and tedious.
+
+_Pros vs. Cons_
+
+- Pros: Machine independent (for the most part). Input dependence captured in model.
+- Cons: Tedious to compute. Array size was arbitrary (we counted for N = 10,000 — but what about for larger N? For a smaller N? How many counts for those?). Number of operations doesn’t tell you the actual time it takes for a certain operation to execute (some might be quicker to execute than others).
+
+So maybe this one has solved some of our cons from the timing simulation above, but it has problems of its own.
+
+![tech-2](note-img/Ch8/tech-2.PNG)
+
+**Technique 2B**: Count possible operations in terms of input array size N (symbolic counts)
+
+_Pros vs. Cons_:
+
+- Pros: Still machine independent (just counting the number of operations still). Input dependence still captured in model. But now, it tells us how our algorithm scales as a function of the size of our input.
+- Cons: Even more tedious to compute. Still doesn’t tell us the actual time it takes!
+
+![tech-2B](note-img/Ch8/tech-2B.PNG)
+
+### Checkpoint
+
+**Exercise**: Apply techniques 2A and 2B to `dup2`
+
+- Come up with counts for each operation, for the following code, with respect to N.
+- Predict the rough magnitudes of each one.
+
+```java
+for (int i = 0; i < A.length - 1; i += 1){
+  if (A[i] == A[i + 1]) {
+    return true;
+  }
+}
+return false;
+```
+
+| operation        | symbolic count | count, N = 10000 |
+| ---------------- | -------------- | ---------------- |
+| i = 0            | 1              | 1                |
+| less than (<)    | 1 to N         | 1 to 10000       |
+| increment (+= 1) | 0 to N - 1     | 0 to 9999        |
+| equals (==)      | 1 to N - 1     | 1 to 9999        |
+| array accesses   | 2 to 2N - 2    | 2 to 19998       |
+
+### Why scaling matters
+
+**Exercise**: Which algorithm is better, and why?
+
+![comparing-algo](note-img/Ch8/comparing-algo.PNG)
+
+### Asymptotic Behavior
+
+In most cases, we only care about what happens for very large N (asymptotic behavior). We want to consider what types of algorithms would best handle big amounts of data, such as in the examples listed below:
+
+- Simulation of billions of interacting particles
+- Social network with billions of users
+- Encoding billions of bytes of video data
+
+Algorithms that scale well (i.e. look like lines) have better asymptotic runtime behavior than algorithms that scale relatively poorly (i.e. looks like parabolas).
+
+#### Parabolas vs. Lines
+
+![](./note-img/Ch8/parabola-lines.PNG)
+
+![](./note-img/Ch8/parabola-lines-2.PNG)
+
+What about constants? If we had functions that took \(2N^2\) operations vs. \(500N\) operations, wouldn’t the one that only takes \(2N^2\) operations be faster in certain cases, like if N = 4 (32 vs. 20,000 operations).
+
+- Yes! For some small \(N\), \(2N^2\) may be smaller than \(500N\).
+- However, as \(N\) grows, the \(2N^2\) will dominate.
+- i.e. N = 10,000 → 2*100000000 vs. 5 * 1000000
+
+The important thing is the “shape” of our graph (i.e. parabolic vs. linear) Let us (for now) informally refer to the shape of our graph as the “orders of growth”.
+
+### Returning to Duplicate Finding
+
+Returning to our original goals of characterizing the runtimes of `dup1` vs. `dup2`
+
+- They should be simple and mathematically rigorous.
+- They should also clearly demonstrate the superiority of dup2 over dup1.
+
+We’ve accomplished the second task! We were able to clearly see that `dup2` performed better than `dup1`. However, we did NOT do it in a very simple or mathematically rigorous way.
+
+We did however talk about how `dup1` performed “like” a parabola, and `dup2` performed “like” a line. Now, we’ll be more formal about what we meant by those statements by applying the four simplifications.
+
+### Intuitive Simplification 1: Consider only the Worst Case
+
+When comparing algorithms, we often only care about the worst case (though we'll see some exceptions later in this course).
+
+**Checkpoint**: Order of Growth Identification
+
+Consider the counts for the algorithm below. What do you expect will be the order of growth of the runtime for the algorithm?
+
+- \(N\) [linear]
+- \(N^2\) [quadratic]
+- \(N^3\) [cubic]
+- \(N^6\) [sextic]
+
+| operation        | count           |
+| ---------------- | --------------- |
+| less than (<)    | \(100N^2 + 3N\) |
+| greater than (>) | \(N^3 + 1\)     |
+| and (&&)         | \(5000\)        |
+
+**Answer**: \(N^3\) cubic
+
+idea:
+
+- Suppose the \(<\) operator takes \(\alpha\) nanoseconds, the \(>\) operator takes \(\beta\) nanoseconds, and && takes \(\gamma\) nanoseconds.
+- Total time is \(\alpha(100N^2 + 3N) + \beta(2N^3 + 1) + 5000\gamma\)
+- For large N, the \(2{\beta}N^3\) term is much larger than the others. (we can think of it in terms of calculus, i.e., $\lim_{N \to \infty} \frac{\alpha(100N^2 + 3N) + \beta(2N^3 + 1) + 5000\gamma}{N^3} = 2\beta$).
+
+### Intuitive Simplification 2: Restrict Attention to One Operation
+
+Pick some **representative operation** to act as a proxy for overall runtime.
+
+- Good choice: **increment**, or **less than** or **equals** or **array accesses**
+- Bad choice: **assignment** of `j = i + 1`, or `i = 0`
+
+The operation we choose can be called the “**cost model**”.
+
+### Intuitive Simplification 3: Eliminate Low Order Terms
+
+Ignore lower order terms!
+
+**Sanity check**: Why does this make sense? (Related to the checkpoint above!)
+My ans: since when the number of input data becomes large, the lower terms are much less dominant than the higher order terms.
+
+### Intuitive Simplification 4: Eliminate Multiplicative Constants
+
+Ignore multiplicative constants.
+
+- Why? No real meaning!
+- Remember that by choosing a single representative operation, we already “threw away” some information
+- Some operations had counts of \(3N^2\), \(N^2/2\) etc. In general, they are all in the family/shape of \(N^2\) !
+
+### Simplification Summary
+
+- Only consider the worst case.
+- Pick a representative operation (aka: cost model)
+- Ignore lower order terms
+- Ignore multiplicative constants.
+
+**checkpoint**: Apply these four steps to `dup2`, given the following tables.
+
+| operation        | symbolic count |
+| ---------------- | -------------- |
+| i = 0            | 1              |
+| less than (<)    | 1 to N         |
+| increment (+= 1) | 0 to N - 1     |
+| equals (==)      | 1 to N - 1     |
+| array accesses   | 2 to 2N - 2    |
+
+**Ans**:
+
+| operation    | worst case order of growth |
+| ------------ | -------------------------- |
+| array access | N                          |
+
+or `less than` or `increment` or `equals` are all ok.
+
+### Summary of our (Painful) Analysis Process
+
+- Construct a table of exact counts of all possible operations (takes lots of effort!)
+- Convert table into worst case order of growth using 4 simplifications.
+
+### Simplified Analysis Process
+
+Rather than building the entire table, we can instead:
+
+- Choose the cost model (representative operation, we'd like to count).
+- Figure out the order of growth for the count of our cost model by either:
+  - Making an exact count, and discarding unnecessary pieces.
+  - Or, using intuition/inspection to determine order of growth (comes with practice).
+
+#### Analysis of Nested For Loops: Exact Count
+
+Find order of growth of worst case runtime of `dup1`.
+
+```java
+int N = A.length;
+for (int i = 0; i < N; i += 1)
+   for (int j = i + 1; j < N; j += 1)
+      if (A[i] == A[j])
+         return true;
+return false;
+```
+
+**Cost model**: number of `==` operations.
+
+- Worst case number of `==` operations:
+
+  - consider the below chart
+    ![chart](./note-img/Ch8/%3D%3Dchart.PNG)
+
+  - Cost $C = 1 + 2 + 3 + ... + (N-2) + (N-1)$
+
+- To sum it up, we can either:
+
+  - Use the old formula to get $C = \frac{N(N-1)}{2}$
+
+  - Or write $C = (N-1) + (N-2) + ... + 3 + 2 + 1$, and then sum these 2 equations and get $2C = N + N + ... + N = N(N-1)$, and thus $C = \frac{N(N-1)}{2}$
+
+- If we do our simplification (throwing away lower order terms, getting rid of multiplicative constants), we get worst case order of growth = $N^2$
+  ​​
+
+#### Analysis of Nested For Loops: Geometric Argument
+
+- We can see that the number of == can be given by the area of a right triangle, which has a side length of N - 1
+
+- Therefore, the order of growth of $Area(triangle)$ is \(N^2\)
+  ​​
+- Takes time and practice to be able to do this!
+
+### Formalizing Order of Growth
+
+Given some function $Q(N)$, we can apply our last two simplifications, i.e., **dropping lower order terms** and **dropping multiplicative constants**, to get the order of growth of \(Q(N)\).
+
+For example, consider the function \(Q(N) = 3N^2 + N^2\), after applying the simplifications for order of growth, we get: \(N^3\)
+
+Next, we’ll use the formal notation of “Big-Theta" to represent how we’ve been analyzing our code.
+
+Checkpoint:
+
+![checkpoint](./note-img/Ch8/checkpoint-order-of-growth.PNG)
+
+---
+
+## Definitions
+
+### Big-Theta
+
+Let R(N) be a function with order of growth f(N). In "**Big-Theta**" notation, we write this as
+
+$$R(N) \in \Theta(f(N))$$
+
+meaning that there exists positive constants $k_1$, $k_2$ such that:
+
+$$ k_1 \cdot f(N) \le R(N) \le k_2 \cdot f(N) $$
+
+for all $N > N_0$, where $N_0$ is some positive number.
+
+We say that "$R(N)$ belongs to Big-Theta of $f(N)$"
+
+**Remark**: This notation is the formal way of representing the "families" we've been finding above.
+
+**Examples**:
+
+- $N^3 + 3N^4 \in \Theta(N^4)$
+- $\frac{1}{N} + 10N^3 \in \Theta(N^3)$
+- $\frac{1}{N} + 5 \in \Theta(1)$
+- $Ne^N + N \in \Theta(Ne^N)$
+- $40 \sin(N) + 4N^2 \in \Theta(N^2)$
+
+**Big-Theta and Runtime Analysis**:
+
+- Using this notation doesn’t change anything about how we analyze runtime (no need to find the constants $k_1$, $k_2$)
+
+- The only difference is that we use the $\Theta$ symbol in the place of “order of growth” (e.g. worst case runtime: $\Theta(N^2)$
+
+**Exercise**: Find a simple f(N) and the corresponding $k_1$ and $k_2$ for the following functions:
+
+- Suppose $R(N) = 40 \sin(N) + 4N^2$
+  $f(N) = N^2$, $k_1 = 3$, $k_2 = 5$
+
+<br>
+
+- Suppose $R(N) = \frac{4N^2 + 3N \ln(N)}{2}$
+  $f(N) = n^2$, $k_1 = 1$, $k_2 = 3$
+
+#### Summary
+
+- Given a piece of code, we can express its **runtime** as a function R(N)
+
+  - where N is some **property** of the input.
+  - i.e. oftentimes, N represents the **size** of the input
+
+- Rather than finding R(N) explicitly, we instead usually only care about the **order of growth** of R(N).
+
+- One approach to find the order of growth (not an universal way though):
+  - Choose a representative operation
+  - Let $C(N)$ = count of how many times that operation occurs, as a function of N.
+  - Determine order of growth $f(N)$ for \(C(N)\), i.e. find \(f(N)\) such that \(C(N) \in \Theta(f(N))\)
+  - Often (but not always) we consider the worst case count.
+  - If operation takes constant time, then $R(N) \in \Theta(f(N))$
+
+### Big-O
+
+---
+
+## 8-3 Asymptotics II

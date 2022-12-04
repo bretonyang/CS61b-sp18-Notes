@@ -1,9 +1,9 @@
 # CS61b-sp18-Notes
 
-Notes, textbook exercises, and lecture exercises of CS61b Data Structures, Spring 2018.
+Notes, textbook exercises solutions, and lecture exercises of CS61b Data Structures, Spring 2018.
 
-Progress: week 7 (2022/11/24).
+Progress:
 
-Finished Labs: 1 ~ 5.
-
-Finished Projects: proj0, proj1a, proj1b.
+- Discussions: 1, 2, 3, 4, 5, 6, 7.
+- Labs: 1, 2, 3, 4, 5.
+- Projects: proj0, proj1a, proj1b.
