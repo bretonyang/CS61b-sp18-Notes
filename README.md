@@ -1,6 +1,6 @@
 # CS61b-sp18-Notes
 
-Notes, textbook exercises solutions, and lecture exercises of CS61b Data Structures, Spring 2018.
+Notes, textbook exercises solutions, and lecture exercises of CS61b: Data Structures, Spring 2018 at UC Berkeley.
 
 Progress:
 
