@@ -6,4 +6,4 @@ Progress:
 
 - Discussions: 1, 2, 3, 4, 5, 6, 7.
 - Labs: 1, 2, 3, 4, 5.
-- Projects: proj0, proj1a, proj1b.
+- Projects: Project 0, Project 1A, Project 1B, Project 1 Gold.
