@@ -30,6 +30,10 @@
       - [Summary](#summary)
     - [Big-O](#big-o)
   - [8-3 Asymptotics II](#8-3-asymptotics-ii)
+    - [Loop Example 1](#loop-example-1)
+    - [Loop Example 2](#loop-example-2)
+    - [There is no magic shortcut :(](#there-is-no-magic-shortcut-)
+    - [Recursion](#recursion)
 
 # Ch.8 Efficient Programming
 
@@ -406,7 +410,7 @@ The operation we choose can be called the “**cost model**”.
 Ignore lower order terms!
 
 **Sanity check**: Why does this make sense? (Related to the checkpoint above!)
-My ans: since when the number of input data becomes large, the lower terms are much less dominant than the higher order terms.
+My ans: since when the number of input data becomes large, the lower terms are much less dominant than the higher order terms. (Think of this in terms of taking the limit)
 
 ### Intuitive Simplification 4: Eliminate Multiplicative Constants
 
@@ -571,3 +575,124 @@ We say that "$R(N)$ belongs to Big-Theta of $f(N)$"
 ---
 
 ## 8-3 Asymptotics II
+
+### Loop Example 1
+
+Determine the order of growth of the overall runtime in the worst case of the following code:
+
+```java
+int N = A.length;
+for (int i = 0; i < N; i += 1)
+   for (int j = i + 1; j < N; j += 1)
+      if (A[i] == A[j])
+         return true;
+return false;
+```
+
+**Method 1**
+
+Since the main repeating operation is the comparator, we will count the number of `==` operations that must occur. The first time through the outer loop, the inner loop will run N-1 times. The second time, it will run N-2 times. Then N-3... In the worst case, we have to go through every entry (the outer loop runs N times).
+
+Therefore, the number of comparisons is: $C = 1 + 2 + ... + (N - 2) + (N - 1) = \frac{N(N-1)}{2}$
+
+$\frac{N(N-1)}{2}$ is of the family \(N^2\). Since `==` is a constant time operation, the overall runtime in the worst case is \(\Theta(N^2)\)
+
+**Method 2**
+
+We can also approach this from a geometric view. Let's draw out when we use == operations in the grid of i,j combinations:
+
+![graph](./note-img/Ch8/%3D%3Dchart.PNG)
+
+We see that the number of `==` operations is the same as the area of a right triangle with a side length of \(N-1\). Since area is in the \(N^2\) family, we see again that the overall runtime is \(\Theta(N^2)\).
+
+### Loop Example 2
+
+Consider the following function, with similar nested for loops:
+
+```java
+public static void printParty(int N) {
+   for (int i = 1; i <= N; i = i * 2) {
+      for (int j = 0; j < i; j += 1) {
+         System.out.println("hello");
+         int ZUG = 1 + 1;
+      }
+   }
+}
+```
+
+**Method 1**
+
+The first loop advances by multiplying `i` by 2 each time. The inner loop runs from 0 to the current value of i. The two operations inside the loop are both constant time, so let's approach this by asking "how many times does this print out "hello" for a given value of N?"
+
+If N is 1, then `i` only reaches 1, `j` is 0. So only 1 print statement.
+
+![](note-img/Ch8/loops2_1.png)
+
+If N is 2, the total number of print statements will be 3. 1 for the first iteration of the outer loop, and 2 for the second iteration.
+
+![](note-img/Ch8/loops2_2.png)
+
+If N is 3, after the second loop, $i = 2 ∗ 2 = 4$, which is greater than N, so the outer loop does not continue, and ends after i = 2, just like N = 2 did. N = 3 will have the same number of print statements as N = 2.
+
+If N is 4, there will be 4 prints when i = 4, 3 prints when i = 2, and 1 print when i = 1 (remember i never equals 3). So a total of 7.
+
+![](note-img/Ch8/loops2_3.png)
+
+We can keep filling out our diagram to get a fuller picture. Here it is up to N = 18:
+
+![](note-img/Ch8/loops2_4.png)
+
+We see that, the number of print statements is: $C(N) = 1 + 2 + 4 + ... + N$, if N is a power of 2.
+
+After some math, we have $C(N) = 1 + 2 + 4 + ... + N = 2N - 1$ if N is a power of 2. Thus, the runtime in the worst case is of order $N$, which is linear.
+
+NOTE: Graphical example
+
+![](note-img/Ch8/loops2_graph.png)
+
+### There is no magic shortcut :(
+
+It would be super convenient if all nested for loops were $N^2$, but in reality, they're NOT.
+
+In the end, there is no shortcut to doing runtime analysis. It requires careful thought. But there are a few useful techniques and things to know.
+
+**Techniques**:
+
+- Find exact sum
+- Write out examples
+- Draw pictures
+
+**Common sum formulas**
+
+- $1 + 2 + 3 + ... + N = \frac{N(N+1)}{2} \in \Theta(N^2)$
+- $1 + 2 + 4 + 8 + ... + N = 2N - 1 \in \Theta(N)$
+
+We already proved the first formula, the second formula can be proved by writing: $1 + 2 + 4 + 8 + ... + N = \sum_{k=1}^{\log_2 {N+1}} 2^{k-1} = \frac{1 \cdot (1-2^{\log_2{N+1}})}{1-2} = 2N - 1$
+
+### Recursion
+
+Consider the function `f3`:
+
+```java
+public static int f3(int n) {
+   if (n <= 1)
+      return 1;
+   return f3(n-1) + f3(n-1);
+}
+```
+
+Let's think of an example. If we call `f3(4)`, it will return `f3(4-1)` + `f3(4-1)` which are each `f3(3-1) + f3(3-1)`, which are each `f3(2-1) + f3(2-1)`, which each return 1. So we see that in the end we have `f3(2-1)` summed 8 times, which equals 8.
+
+We can visualize this as a **tree**, where each level is the argument to the function:
+
+![](note-img/Ch8/asymptotics2_tree.png)
+
+We see that the function returns the value $2^{N-1}$
+
+**The Intuitive Method**
+
+Now, let's think about the runtime. We can notice that every time we add one to N, we double the amount of work that has to be done:
+
+![](note-img/Ch8/asymptotics2_tree2.png)
+
+This intuitive argument shows that the runtime is
