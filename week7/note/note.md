@@ -25,15 +25,23 @@
       - [Analysis of Nested For Loops: Exact Count](#analysis-of-nested-for-loops-exact-count)
       - [Analysis of Nested For Loops: Geometric Argument](#analysis-of-nested-for-loops-geometric-argument)
     - [Formalizing Order of Growth](#formalizing-order-of-growth)
-  - [Definitions](#definitions)
-    - [Big-Theta](#big-theta)
-      - [Summary](#summary)
-    - [Big-O](#big-o)
   - [8-3 Asymptotics II](#8-3-asymptotics-ii)
     - [Loop Example 1](#loop-example-1)
     - [Loop Example 2](#loop-example-2)
     - [There is no magic shortcut :(](#there-is-no-magic-shortcut-)
     - [Recursion](#recursion)
+    - [Binary Search](#binary-search)
+    - [Floor, Ceiling, and Logarithmic Big-Theta Properties](#floor-ceiling-and-logarithmic-big-theta-properties)
+    - [Merge Sort](#merge-sort)
+    - [Wrapup](#wrapup)
+    - [Important note on finding the middle index for divide and conquer algorithms](#important-note-on-finding-the-middle-index-for-divide-and-conquer-algorithms)
+  - [8-4](#8-4)
+  - [Definitions](#definitions)
+    - [Big-Theta](#big-theta)
+      - [Summary](#summary)
+    - [Big-O](#big-o)
+      - [Intro](#intro)
+      - [Formal Definition](#formal-definition)
 
 # Ch.8 Efficient Programming
 
@@ -512,68 +520,6 @@ Checkpoint:
 
 ---
 
-## Definitions
-
-### Big-Theta
-
-Let R(N) be a function with order of growth f(N). In "**Big-Theta**" notation, we write this as
-
-$$R(N) \in \Theta(f(N))$$
-
-meaning that there exists positive constants $k_1$, $k_2$ such that:
-
-$$ k_1 \cdot f(N) \le R(N) \le k_2 \cdot f(N) $$
-
-for all $N > N_0$, where $N_0$ is some positive number.
-
-We say that "$R(N)$ belongs to Big-Theta of $f(N)$"
-
-**Remark**: This notation is the formal way of representing the "families" we've been finding above.
-
-**Examples**:
-
-- $N^3 + 3N^4 \in \Theta(N^4)$
-- $\frac{1}{N} + 10N^3 \in \Theta(N^3)$
-- $\frac{1}{N} + 5 \in \Theta(1)$
-- $Ne^N + N \in \Theta(Ne^N)$
-- $40 \sin(N) + 4N^2 \in \Theta(N^2)$
-
-**Big-Theta and Runtime Analysis**:
-
-- Using this notation doesn’t change anything about how we analyze runtime (no need to find the constants $k_1$, $k_2$)
-
-- The only difference is that we use the $\Theta$ symbol in the place of “order of growth” (e.g. worst case runtime: $\Theta(N^2)$
-
-**Exercise**: Find a simple f(N) and the corresponding $k_1$ and $k_2$ for the following functions:
-
-- Suppose $R(N) = 40 \sin(N) + 4N^2$
-  $f(N) = N^2$, $k_1 = 3$, $k_2 = 5$
-
-<br>
-
-- Suppose $R(N) = \frac{4N^2 + 3N \ln(N)}{2}$
-  $f(N) = n^2$, $k_1 = 1$, $k_2 = 3$
-
-#### Summary
-
-- Given a piece of code, we can express its **runtime** as a function R(N)
-
-  - where N is some **property** of the input.
-  - i.e. oftentimes, N represents the **size** of the input
-
-- Rather than finding R(N) explicitly, we instead usually only care about the **order of growth** of R(N).
-
-- One approach to find the order of growth (not an universal way though):
-  - Choose a representative operation
-  - Let $C(N)$ = count of how many times that operation occurs, as a function of N.
-  - Determine order of growth $f(N)$ for \(C(N)\), i.e. find \(f(N)\) such that \(C(N) \in \Theta(f(N))\)
-  - Often (but not always) we consider the worst case count.
-  - If operation takes constant time, then $R(N) \in \Theta(f(N))$
-
-### Big-O
-
----
-
 ## 8-3 Asymptotics II
 
 ### Loop Example 1
@@ -667,7 +613,7 @@ In the end, there is no shortcut to doing runtime analysis. It requires careful 
 - $1 + 2 + 3 + ... + N = \frac{N(N+1)}{2} \in \Theta(N^2)$
 - $1 + 2 + 4 + 8 + ... + N = 2N - 1 \in \Theta(N)$
 
-We already proved the first formula, the second formula can be proved by writing: $1 + 2 + 4 + 8 + ... + N = \sum_{k=1}^{\log_2 {N+1}} 2^{k-1} = \frac{1 \cdot (1-2^{\log_2{N+1}})}{1-2} = 2N - 1$
+We already proved the first formula, the second formula can be proved by writing: $1 + 2 + 4 + 8 + ... + N = \sum_{k=1}^{(\log_2{N})+1} 2^{k-1} = \frac{1 \cdot (1-2^{(\log_2{N})+1})}{1-2} = 2N - 1$
 
 ### Recursion
 
@@ -695,4 +641,340 @@ Now, let's think about the runtime. We can notice that every time we add one to 
 
 ![](note-img/Ch8/asymptotics2_tree2.png)
 
-This intuitive argument shows that the runtime is
+This intuitive argument shows that the runtime is $2^N$.
+
+**The Algebraic Method**
+
+The second way to approach this problem is to count the number of calls to f3 involved.
+
+$C(1) =1$, $C(2) = 1 + 2$, $C(3) = 1 + 2 + 4$, $C(4) = 1 + 2 + 4 + 8$, $C(N) = 1 + 2 + 4 + ... + 2^{N-1} = 2 \cdot 2^{N-1} - 1 = 2^N - 1 \in \Theta(2^N)$
+
+Since the operation time for each call (not including recursive work) is constant, so the overall runtime $R(N) \in \Theta(2^N)$
+
+**Recurrence Relations**
+
+- $C(N) = 1$
+- $C(N) = 2 C(N-1) + 1$, where 1 is the extra call for the root.
+- $C(N) = 2C(N-1) + 1 = 2(2C(N-2) + 1) + 1 = 4C(N-2) + 2 + 1 = 4(2C(N-3) + 1) + 2 + 1 = 8C(N-3) + 4 + 2 + 1 = ... = 2^{N-1} \cdot C(1) + 2^{N-2} + ... + 1 = 2(2^{N-1}) - 1 = 2N - 1$
+
+![](./note-img/Ch8/ex3-recurrence.PNG)
+
+### Binary Search
+
+**Intro**
+
+Binary search is a nice way of searching a list for a particular item. It requires the list to be in sorted order, and uses that fact to find an element quickly.
+
+To do a binary search, we start in the middle of the list, and check if that's our desired element. If not, we ask: is this element bigger or smaller than our element?
+
+If it's bigger, then we know we only have to look at the half of the list with smaller elements. If it's too small, then we only look at the half with bigger elements. In this way, we can cut in half the number of options we have left at each step, until we find it.
+
+For an animation of binary search, see [slides](https://docs.google.com/presentation/d/1P4HKmsO3Aaugv7_U16jJN0UbfTEJi1uZUdi_WbIIGe0/edit#slide=id.g463de7561_042)
+
+```java
+public static int binarySearch(String[] sorted, String x, int low, int high) {
+  if (low > high)
+    return -1;
+
+  int mid = (low + high) / 2;
+  int cmp = x.compareTo(sorted[mid]);
+
+  if (cmp > 0)
+    return binarySearch(sorted, x, low, mid - 1);
+  else if (cmp < 0)
+    return binarySearch(sorted, x, mid + 1, high);
+  else
+    return mid;
+}
+```
+
+**Intuitive method**
+
+What's the intuitive runtime of binary search? Take a minute and use the tools you know to consider this.
+
+My idea: $\frac{N}{2^{C(N)}} = 1 \implies C(N) = \log_2{N} \in \Theta(\log_2{N})$
+
+Answer: We start with n options, then n/2, then n/4 ... until we have just 1. Each time, we cut the array in half, so in the end we must perform a total of $\log_2(n)$ operations. Each of the $\log_2(n)$ operations, eg. finding the middle element and comparing with it, takes constant time. So the overall runtime then is order $\log_2(n)$
+
+It's important to note, however that each step doesn't cut it exactly in half. If the array is of even length, and there is no 'middle', we have to take either a smaller or a larger portion. But this is a good intuitive approach.
+
+**More Precise Method**
+
+To precisely calculate the runtime of binary search, we'll count the number of operations, just as we've done previously.
+
+_Step 1_: Define our cost model, let's use the number of recursive binary search calls. Since the number of operations inside each call is constant, the number of calls will be the only thing varying based on the size of the input, so it's a good cost model.
+
+_Step 2_: Like we've seen before, let's do some example counts for specific N.
+
+| N     | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  | 13  |
+| ----- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Count | 1   | 2   | 2   | 3   | 3   | 3   | 3   | 4   | 4   | 4   | 4   | 4   | 4   |
+
+Precisely, $C(N) = \lfloor \log_2 N \rfloor + 1$, by the following properties, we see that $\Theta(\lfloor \log_2(N) \rfloor) \in \Theta(\log N)$
+
+![](./note-img/Ch8/ex4-exact.PNG)
+
+### Floor, Ceiling, and Logarithmic Big-Theta Properties
+
+1. $\lfloor f(N) \rfloor \in \Theta(f(N))$
+2. $\lceil f(N) \rceil \in \Theta(f(N))$
+3. $\log_p (N) \in \Theta(\log_q (N))$, for some $p > 0$ and $q > 0$
+
+**Proof**
+
+See notability notes.
+
+**Remark**
+
+Log time is super good! It's almost as fast as constant time, and way better than linear time. This is why we like binary search, rather than linear search, where we would step one by one through our list and looking for the right thing.
+
+### Merge Sort
+
+**Discussion 1**
+
+First, let's remind ourselves of selection sort, which we will initially use as a building block for merge sort.
+
+Selection sort works off two basic steps:
+
+- Find the smallest item among the unsorted items, move it to the front, and ‘fix’ it in place.
+- Sort the remaining unsorted/unfixed items using selection sort.
+
+If we analyze selection sort, we see that $C(N) = N + (N-1) + (N-2) + ... + 2 + 1 = \frac{N(N+1)}{2} \in \Theta(N^2)$, where I've chosen the cost model as the comparison operator to compare current item and the smallest item among the unsorted items.
+
+> Arbitrary units of time: Let's introduce one other idea here, **arbitrary units of time**. While the exact time something will take will depend on the machine, on the particular operations, etc., we can get a general sense of time through our arbitrary units (AU).
+>
+> If we run an N=6 selection sort, and the runtime is order $N^2$, it will take ~36 AU to run. If N=64, it'll take ~4096 AU to run. Now we don't know if that's 4096 nanoseconds, or seconds, or years, but we can get a relative sense of the time needed for each size of N.
+
+**Discussion 2**
+
+Let's consider merging now.
+
+Say we have two sorted arrays that we want to combine into a single big sorted array. We could append one to the other, and then re-sort it, but that doesn't make use of the fact that each individual array is already sorted. How can we use this to our advantage?
+
+It turns out, we can merge them more quickly using the sorted property. _The smallest element must be at the start of one of the two sorted lists_. So let's compare those, and put the smallest element at the start of our new list.
+
+Now, the next smallest element has to be at the new start of one of the two lists. We can _continue comparing the first two elements and moving the smallest into place until one list is empty_, then copy the rest of the other list over into the end of the new list.
+
+See an animation for merging: [merging lists demo](https://docs.google.com/presentation/d/1mdCppuWQfKG5JUBHAMHPgbSv326JtCi5mvjH1-6XcMw/edit#slide=id.g463de7561_042)
+
+What is the runtime of merge? We can use the number of "write" operations to the new list as our cost model, and count the operations. Since we have to write each element of each list only once, the runtime is $\Theta(N)$.
+
+**Discussion 3**
+
+Selection sort is slow, and merging is fast. How do we combine these to make sorting faster?
+
+We noticed earlier that doing selection sort on an N=64 list will take ~4096 AU. But if we sort a list half that big, N=32, it only takes ~1024 AU. That's more than twice as fast! So making the arrays we sort smaller has big time savings. Thus, we can half the array and sort 2 smaller arrays.
+
+Having two sorted arrays is a good step, but we need to put them together. Luckily, we have merge. Merge, being of linear runtime, only takes ~64 AU. So in total, splitting it in half, sorting, then merging, only takes 1024 + 1024 + 64 = 2112 AU. Faster than selection sorting the whole array. But how much faster?
+
+Now, AUs aren't real units, but they're sometimes easier and more intuitive than looking at the runtime. The runtime for our split-in-half-then-merge-them sort is $N + 2(N/2)^2$, which is about half of $N^2$for selection sort. However, they are still both $\Theta(N^2)$.
+
+What if we halved the arrays again? Will it get better? Yes! If we do two layers of merges, starting with lists of size N/4, the total time will be ~640 AU. Calculation:
+4 \* (~ 16^2) + 2 \* (~ 32) + (~ 64) = 1152, where the ~ sign denotes the value is approximated.
+
+**Merge sort**
+
+What if we halved it again? And again? And again?
+
+**Eventually we'll reach lists of size 1. At that point, we don't even have to use selection sort, because a list with one element is already sorted.**
+
+This is the essence of **merge sort**:
+
+- If the list size is 1, return.
+- Otherwise:
+  - Merge sort the left half
+  - Merge sort the right half
+  - Merge the right half and left half
+
+**Runtime of merge sort intuitive method**
+
+So, what's the running time of merge sort?
+
+We know merge itself is order N, so we can start by looking at each layer of merging:
+
+- To get the top layer: merge ~ 64 elements = 64 AU
+- Second layer: merge ~ 32 elements twice = 64 AU
+- Third layer: ~ 4(16) = 64 AU
+- ...
+
+Overall runtime in AU is ~64 \* k, where k is the number of layers. Here, $k = \log_2(64) = 6$so the overall cost of mergesort is ~384 AU.
+
+From the above discussion, we see that mergesort has worst case runtime = $\Theta(N \log N)$.
+
+- The top level takes ~N AU.
+- Next level takes ~N/2 + ~N/2 = ~N AU.
+- Third level takes ~N/4 + ~N/4 + ~N/4 + ~N/4 = ~N AU.
+- ...
+
+Thus, total runtime is ~Nk, where k is the number of levels.
+
+How many levels are there? We split the array until it is length 1, so $k = log_2(N)$. Thus the overall runtime is $\Theta (N log N)$.
+
+**Exact count and recurrence relation method for runtime of merge sort**
+
+![](./note-img/Ch8/merge-exactcount.PNG)
+![](./note-img/Ch8/merge-recurrence.PNG)
+
+**Comparison**
+
+Is $\Theta(N \log N)$ actually better than $\Theta(N^2)$? Yes, it turns out that $\Theta(N \log N)$ is not much slower than linear time.
+
+![](note-img/Ch8/timetable.png)
+
+### Wrapup
+
+**Takeaways**
+
+- There are no magic shortcuts for analyzing code runtime.
+- In our course, it’s OK to do exact counting or intuitive analysis.
+- Know how to sum 1 + 2 + 3 + ... + N and 1 + 2 + 4 + ... + N.
+- Many runtime problems you’ll do in this class resemble one of the five problems from today. See textbook, study guide, and discussion for more practice.
+- Different solutions to the same problem, e.g. sorting, may have different runtimes (with big enough differences for the runtime to go from impractical to practical!).
+- $N^2$ to $N\log N$ is an enormous difference.
+- Going from $N\log N$ to $N$ is nice, but not a radical change.
+
+### Important note on finding the middle index for divide and conquer algorithms
+
+Algorithms like binary search and merge sorts that requires halving the search list is extremely hard to implement perfectly. And in fact, there's even a bug in the original Java library's implementation of binary search for 20 years, until 2006. See [here](https://ai.googleblog.com/2006/06/extra-extra-read-all-about-it-nearly.html)
+
+Below is a summary.
+
+There's a bug in the following code, which is the implementation of a binary search algorithm in the java.util.Arrays library.
+
+```java
+public static int binarySearch(int[] a, int key) {
+  int low = 0;
+  int high = a.length;
+
+  while (low <= high) {
+    int mid = (low + high) / 2;
+    int midVal = a[mid];
+
+    if (midVal < key)
+      low = mid + 1;
+    else if (midVal > key)
+      high = mid - 1;
+    else
+      return mid; // key found
+  }
+  return -1; // key not found
+}
+```
+
+The bug is that the line `mid = (low + high) / 2` will fail for large values of `low` and `high`. Although this might seem a bit nitpicky, and probably does not matter for small programs, but when it's used for large number of data, especially these days the databases are usually huge in big companies, this will be a problem.
+
+The next question is, how can we modify it to work for ALL values of n;
+
+The best and simplest way to fix the bug, is:
+
+```java
+int mid = low + ((high - low) / 2);
+```
+
+Another faster but not so clear method:
+
+```java
+int mid = (low + high) >>> 1;
+```
+
+Or, in C and C++:
+
+```c
+int mid = ((unsigned int)low + (unsigned int)high) >> 1;
+```
+
+---
+
+## 8-4
+
+---
+
+## Definitions
+
+### Big-Theta
+
+Let R(N) be a function with order of growth f(N), where $R$ and $f$ are functions from some subset of $\N$ to non-negative real numbers. In "**Big-Theta**" notation, we write this as
+
+$$R(N) \in \Theta(f(N))$$
+
+meaning that there exists positive integers $k_1$, $k_2$ such that:
+
+$$ k_1 \cdot f(N) \le R(N) \le k_2 \cdot f(N) $$
+
+for all $N > N_0$, where $N_0$ is some positive integer.
+
+We say that "$R(N)$ belongs to Big-Theta of $f(N)$"
+
+**Remark**: This notation is the formal way of representing the "families" we've been finding above.
+
+**Examples**:
+
+- $N^3 + 3N^4 \in \Theta(N^4)$
+- $\frac{1}{N} + 10N^3 \in \Theta(N^3)$
+- $\frac{1}{N} + 5 \in \Theta(1)$
+- $Ne^N + N \in \Theta(Ne^N)$
+- $40 \sin(N) + 4N^2 \in \Theta(N^2)$
+
+**Big-Theta and Runtime Analysis**:
+
+- Using this notation doesn’t change anything about how we analyze runtime (no need to find the constants $k_1$, $k_2$)
+
+- The only difference is that we use the $\Theta$ symbol in the place of “order of growth” (e.g. worst case runtime: $\Theta(N^2)$
+
+**Exercise**: Find a simple f(N) and the corresponding $k_1$ and $k_2$ for the following functions:
+
+- Suppose $R(N) = 40 \sin(N) + 4N^2$
+  $f(N) = N^2$, $k_1 = 3$, $k_2 = 5$
+
+<br>
+
+- Suppose $R(N) = \frac{4N^2 + 3N \ln(N)}{2}$
+  $f(N) = n^2$, $k_1 = 1$, $k_2 = 3$
+
+#### Summary
+
+- Given a piece of code, we can express its **runtime** as a function R(N)
+
+  - where N is some **property** of the input.
+  - i.e. oftentimes, N represents the **size** of the input
+
+- Rather than finding R(N) explicitly, we instead usually only care about the **order of growth** of R(N).
+
+- One approach to find the order of growth (not an universal way though):
+  - Choose a representative operation
+  - Let $C(N)$ = count of how many times that operation occurs, as a function of N.
+  - Determine order of growth $f(N)$ for \(C(N)\), i.e. find \(f(N)\) such that \(C(N) \in \Theta(f(N))\)
+  - Often (but not always) we consider the worst case count.
+  - If operation takes constant time, then $R(N) \in \Theta(f(N))$
+
+### Big-O
+
+#### Intro
+
+Earlier, we used Big Theta to describe the order of growth of functions as well as code pieces. Recall that if $R(N) \in \Theta(f(N))$, then $R(N)$ is both upper and lower bounded by $\Theta(f(N))$. Describing runtime with both an upper and lower bound can informally be though of as runtime "equality".
+
+For example, $N^3 + 3N^4 \in \Theta(N^4)$. It is both upper and lower bounded by $N^4$.
+
+On the other hand, Big O can be though of as a runtime inequality, namely, as "less than or equal". For example, all of the following are true: $N^3 + 3N^4 \in O(N^4)$, $N^3 + 3N^4 \in O(N^6)$, $N^3 + 3N^4 \in O(N!)$, $N^3 + 3N^4 \in O(N^{N!})$
+
+In other words, if a function, like the one above, is upper bounded by $N^4$, then it is also upper bounded by functions that themselves upper bound $N^4$. $N^3 + 3N^4$ is "less than or equal to" all of these functions in the asymptotic sense.
+
+#### Formal Definition
+
+Let R(n) and f(n) be functions from some subset of $\N$ to non-negative real numbers.
+
+If there exists a positive integer `k_2` such that $R(N) \le k_2 \cdot f(N)$, for all $N > N_0$, where $N_0$ is some positive integer.
+
+Then, $R(N) \in O(f(N))$
+
+**Remark**
+
+Observe that this is a looser condition than Big Theta since Big O does not care about the lower bound.
+
+```
+
+```
+
+```
+
+```
