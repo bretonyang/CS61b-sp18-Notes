@@ -35,7 +35,6 @@
     - [Merge Sort](#merge-sort)
     - [Wrapup](#wrapup)
     - [Important note on finding the middle index for divide and conquer algorithms](#important-note-on-finding-the-middle-index-for-divide-and-conquer-algorithms)
-  - [8-4](#8-4)
   - [Definitions](#definitions)
     - [Big-Theta](#big-theta)
       - [Summary](#summary)
@@ -885,10 +884,6 @@ int mid = ((unsigned int)low + (unsigned int)high) >> 1;
 
 ---
 
-## 8-4
-
----
-
 ## Definitions
 
 ### Big-Theta
@@ -970,11 +965,3 @@ Then, $R(N) \in O(f(N))$
 **Remark**
 
 Observe that this is a looser condition than Big Theta since Big O does not care about the lower bound.
-
-```
-
-```
-
-```
-
-```
